@@ -36,7 +36,7 @@ export function encontrarCeldaInicial(diorama) {
  * a la vez, con animación corta y bloqueo en bordes/agua (choque = vibra
  * distinto y no avanza — el toque "RPG" de que el mundo tiene reglas).
  */
-export function crearControladorPersonaje({ mesh, diorama, celdaInicial }) {
+export function crearControladorPersonaje({ mesh, diorama, celdaInicial, director }) {
   const DURACION_PASO = 160;
   const centrado = -(diorama.tamano * TAMANO_CELDA) / 2;
   const celdasPorCoordenada = new Map(
@@ -79,19 +79,33 @@ export function crearControladorPersonaje({ mesh, diorama, celdaInicial }) {
     vibrar(10);
   }
 
+  /**
+   * Las flechas son relativas a la PANTALLA, no a la grilla: "arriba" es
+   * siempre hacia el fondo de lo que se ve, sin importar en qué plano esté
+   * la cámara. Sin esto, después de girar el encuadre la flecha de arriba
+   * movería al personaje en diagonal respecto de lo que el ojo espera —
+   * justo el tipo de fricción de controles que el prototipo quiere evitar.
+   */
+  function moverEnPantalla(haciaAdelante, haciaDerecha) {
+    const { adelante, derecha } = director.ejesPantallaEnGrilla();
+    const dx = adelante.dx * haciaAdelante + derecha.dx * haciaDerecha;
+    const dz = adelante.dz * haciaAdelante + derecha.dz * haciaDerecha;
+    intentarMover(dx, dz);
+  }
+
   function alTeclaPresionada(evento) {
     switch (evento.key) {
       case 'ArrowUp':
-        intentarMover(0, -1);
+        moverEnPantalla(1, 0);
         break;
       case 'ArrowDown':
-        intentarMover(0, 1);
+        moverEnPantalla(-1, 0);
         break;
       case 'ArrowLeft':
-        intentarMover(-1, 0);
+        moverEnPantalla(0, -1);
         break;
       case 'ArrowRight':
-        intentarMover(1, 0);
+        moverEnPantalla(0, 1);
         break;
       default:
         return;

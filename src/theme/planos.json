@@ -1,0 +1,94 @@
+{
+  "nombre": "greybox-cinematografico",
+  "descripcion": "Estructura de composición de cámara: la grilla de encuadres y el shot list. Los NÚMEROS de aquí son placeholders — definen dónde se para la cámara y qué cuenta cada plano, que es una decisión de dirección/identidad visual y le corresponde a RR, no al agente. Lo que el agente propone es la ESTRUCTURA del archivo (ver README, sección 'Identidad visual').",
+
+  "grilla": {
+    "descripcion": "Los pasos regulares. A/D avanzan por 'azimutPasos' (giro alrededor); W/S suben y bajan por 'elevaciones'. Cada combinación de ambos índices es una celda; las celdas que aparecen en 'planos' tienen encuadre curado, el resto usa 'encuadreGenerico'.",
+    "azimutPasos": 8,
+    "azimutInicial": 1,
+    "elevaciones": [6, 20, 35.264, 55, 80],
+    "elevacionInicial": 2
+  },
+
+  "encuadreGenerico": {
+    "descripcion": "Framing por defecto de cualquier celda sin plano curado. Mantiene el look isométrico: fov muy bajo ≈ proyección ortográfica.",
+    "encuadre": 20,
+    "fov": 12,
+    "roll": 0,
+    "objetivo": "centro",
+    "volteo": [0, 0, 0]
+  },
+
+  "planos": [
+    {
+      "nombre": "isométrico base",
+      "cuenta": "El terrario como objeto observado. El punto de reposo: nada pasa, todo se ve.",
+      "celda": [1, 2],
+      "encuadre": 20,
+      "fov": 12,
+      "roll": 0,
+      "objetivo": "centro",
+      "volteo": [0, 0, 0]
+    },
+    {
+      "nombre": "cenital de mapa",
+      "cuenta": "Lectura fría del territorio: dónde estás, qué hay. Aplasta la profundidad a propósito.",
+      "celda": [1, 4],
+      "encuadre": 22,
+      "fov": 8,
+      "roll": 0,
+      "objetivo": "centro",
+      "volteo": [0, 0, 0]
+    },
+    {
+      "nombre": "rasante dramático",
+      "cuenta": "A ras de suelo, con fuga real. El mundo se vuelve grande y el personaje pequeño.",
+      "celda": [5, 0],
+      "encuadre": 11,
+      "fov": 42,
+      "roll": 0,
+      "objetivo": "personaje",
+      "volteo": [0, 0, 0]
+    },
+    {
+      "nombre": "tres cuartos cerrado",
+      "cuenta": "Plano de acompañamiento: la cámara se acerca y el personaje manda.",
+      "celda": [3, 1],
+      "encuadre": 9,
+      "fov": 30,
+      "roll": 0,
+      "objetivo": "personaje",
+      "volteo": [0, 0, 0]
+    },
+    {
+      "nombre": "ángulo holandés",
+      "cuenta": "Horizonte torcido: algo no está bien. Tensión sin cambiar de lugar.",
+      "celda": [7, 1],
+      "encuadre": 14,
+      "fov": 26,
+      "roll": -12,
+      "objetivo": "personaje",
+      "volteo": [0, 0, 0]
+    },
+    {
+      "nombre": "volteo del terrario",
+      "cuenta": "El momento rubik: ya no es la cámara la que se mueve, es el mundo el que se da vuelta.",
+      "celda": [5, 3],
+      "encuadre": 24,
+      "fov": 18,
+      "roll": 0,
+      "objetivo": "centro",
+      "volteo": [0, 0, 180]
+    },
+    {
+      "nombre": "vértigo",
+      "cuenta": "Mismo encuadre del personaje, pero la perspectiva se abre de golpe: dolly zoom.",
+      "celda": [3, 3],
+      "encuadre": 9,
+      "fov": 55,
+      "roll": 0,
+      "objetivo": "personaje",
+      "volteo": [0, 0, 0]
+    }
+  ]
+}

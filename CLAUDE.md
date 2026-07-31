@@ -58,3 +58,20 @@ real cámara↔objeto, si no todo se pinta invisible (color de niebla ≈
 color de fondo) aunque geometría/luces/cámara estén bien. Si algo se ve
 "negro" sin motivo aparente, revisar la niebla ANTES que luces o cámara —
 es la causa más barata de descartar y la más fácil de pasar por alto.
+
+**Actualización:** desde que la cámara se mueve entre planos, la distancia
+cámara↔objeto dejó de ser constante, así que unos valores fijos de niebla
+no podían servir para todos los encuadres. Ahora `theme.niebla` guarda
+`factorCerca`/`factorLejos` (multiplicadores) y `render/camera.js`
+recalcula `near`/`far` por frame a partir de la distancia real. Si se
+vuelven a poner distancias absolutas ahí, el bug reaparece — pero solo en
+algunos planos, que es peor porque parece intermitente.
+
+## Cómo verificar cambios visuales sin instalar nada (2026-07-31)
+`npm run build` solo prueba que compila, no que se vea. Para validar de
+verdad hay un script de humo con Playwright (Chromium ya viene en el
+entorno del agente): levanta un servidor sobre `dist/`, carga la página en
+apaisado y retrato, dispara secuencias de teclas y guarda capturas. Detalle
+importante: leer píxeles con `readPixels` da falso "pantalla vacía" porque
+Three.js no preserva el drawing buffer — hay que mirar las capturas, no
+confiar en el muestreo de color.

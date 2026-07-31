@@ -2,7 +2,12 @@
   "nombre": "greybox",
   "descripcion": "Tema placeholder sin identidad visual. Solo sirve para validar la generación procedural. Reemplazar cuando exista una identidad definida (ver README, sección 'Identidad visual').",
   "fondo": "#1a1a1a",
-  "niebla": { "color": "#1a1a1a", "cerca": 40, "lejos": 95 },
+  "niebla": {
+    "_nota": "cerca/lejos dejaron de ser distancias absolutas: ahora son factores multiplicados por la distancia real de la cámara, que cambia con cada plano. Un factorLejos menor a ~1.5 hace desaparecer el diorama (ver lección del bug de niebla en CLAUDE.md).",
+    "color": "#1a1a1a",
+    "factorCerca": 0.55,
+    "factorLejos": 2.4
+  },
   "luz": {
     "ambiental": "#404040",
     "direccional": "#ffffff",
