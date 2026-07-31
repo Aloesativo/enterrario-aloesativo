@@ -18,12 +18,55 @@ export function crearEscena({ canvas, theme }) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
+  // Sombras proyectadas. Sin ellas los bloques flotan visualmente aunque
+  // estén bien colocados: la sombra es lo que ancla un objeto al suelo.
+  // PCFSoft porque el borde duro delata el shadow map y rompe la ilusión
+  // de miniatura; el coste extra es despreciable a esta escala.
+  const sombras = theme.sombras ?? {};
+  if (sombras.activas !== false) {
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  }
+
   const luzAmbiental = new THREE.AmbientLight(theme.luz.ambiental);
   const luzDireccional = new THREE.DirectionalLight(
     theme.luz.direccional,
     theme.luz.intensidadDireccional
   );
-  luzDireccional.position.set(10, 20, 10);
+
+  // La dirección de la luz principal es identidad visual (es la hora del
+  // día del diorama), así que sale del theme. Antes estaba fija aquí, que
+  // era una decisión de estilo escondida en la capa de traducción.
+  const [lx, ly, lz] = theme.luz.posicion ?? [10, 20, 10];
+  luzDireccional.position.set(lx, ly, lz);
+
+  if (sombras.activas !== false) {
+    luzDireccional.castShadow = true;
+    // Resolución moderada a propósito: 2048 se nota en un teléfono y este
+    // prototipo tiene que verse bien en el móvil de RR, no en una GPU.
+    const resolucion = sombras.resolucion ?? 1024;
+    luzDireccional.shadow.mapSize.set(resolucion, resolucion);
+
+    // La cámara de sombra es ortográfica y hay que decirle qué volumen
+    // cubre: si es muy chica recorta la sombra, si es muy grande desperdicia
+    // resolución y la sombra sale pixelada. `alcance` debe cubrir el
+    // diorama entero con algo de margen.
+    const alcance = sombras.alcance ?? 14;
+    const camaraSombra = luzDireccional.shadow.camera;
+    camaraSombra.left = -alcance;
+    camaraSombra.right = alcance;
+    camaraSombra.top = alcance;
+    camaraSombra.bottom = -alcance;
+    camaraSombra.near = 0.5;
+    camaraSombra.far = 60;
+    camaraSombra.updateProjectionMatrix();
+
+    // El bias corrige el "shadow acne" (rayado en las superficies
+    // iluminadas). Demasiado bias despega la sombra del objeto.
+    luzDireccional.shadow.bias = sombras.bias ?? -0.0006;
+    luzDireccional.shadow.normalBias = sombras.biasNormal ?? 0.02;
+  }
+
   scene.add(luzAmbiental, luzDireccional);
 
   const suscriptores = [];

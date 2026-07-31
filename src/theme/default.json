@@ -1,6 +1,6 @@
 {
   "nombre": "greybox",
-  "descripcion": "Tema placeholder sin identidad visual. Solo sirve para validar la generación procedural. Reemplazar cuando exista una identidad definida (ver README, sección 'Identidad visual').",
+  "descripcion": "Tema placeholder sin identidad visual. Solo sirve para validar la generación procedural y la cadena de iluminación. Reemplazar cuando exista una identidad definida (ver README, sección 'Identidad visual').",
   "fondo": "#1a1a1a",
   "niebla": {
     "_nota": "cerca/lejos dejaron de ser distancias absolutas: ahora son factores multiplicados por la distancia real de la cámara, que cambia con cada plano. Un factorLejos menor a ~1.5 hace desaparecer el diorama (ver lección del bug de niebla en CLAUDE.md).",
@@ -9,9 +9,58 @@
     "factorLejos": 2.4
   },
   "luz": {
+    "_nota": "posicion es la dirección del sol, o sea la hora del día del diorama. Estaba fija dentro de render/scene.js, que era una decisión de estilo escondida en la capa de traducción. VERIFICADO 2026-07-31: con [10,20,10] (sol alto, ~55°) las sombras salen tan cortas que el propio objeto las tapa desde la cámara casi cenital — parecen no funcionar, pero funcionan. Con un sol rasante tipo [16,5,7] aparecen de inmediato. Bajar 'entorno.intensidad' o la luz ambiental NO es lo que las hace visibles: el ángulo sí. Valores sin tocar porque son identidad visual y los elige RR.",
     "ambiental": "#404040",
     "direccional": "#ffffff",
-    "intensidadDireccional": 1.2
+    "intensidadDireccional": 1.2,
+    "posicion": [10, 20, 10]
+  },
+  "entorno": {
+    "_nota": "iluminación basada en imagen. Hoy usa un entorno procedural (RoomEnvironment de Three.js) para no meter binarios al repo. Cuando RR elija un ambiente real, se pone un .hdr en public/ y se amplía este bloque — la ELECCIÓN de ambiente es identidad visual, el mecanismo vive en render/entorno.js.",
+    "toneMapping": "ACESFilmicToneMapping",
+    "exposicion": 1,
+    "intensidad": 1,
+    "desenfoque": 0.04
+  },
+  "sombras": {
+    "_nota": "resolución baja a propósito: el objetivo es que se vea bien en un teléfono. Subirla a 2048 mejora el borde pero se nota en móvil.",
+    "activas": true,
+    "resolucion": 1024,
+    "alcance": 14,
+    "bias": -0.0006,
+    "biasNormal": 0.02
+  },
+  "postproceso": {
+    "_nota": "VALORES PLACEHOLDER, propuestos solo para que se vea el mecanismo funcionando. El look real lo define RR. Cualquier bloque puesto en null apaga ese efecto; 'activo': false apaga la cadena entera para comparar antes/después.",
+    "activo": true,
+    "tiltShift": {
+      "_nota": "el efecto miniatura. franjaNitida = qué proporción de la pantalla queda enfocada; difuminado = cuán suave es la transición al desenfoque.",
+      "franjaNitida": 0.38,
+      "difuminado": 0.32,
+      "desplazamiento": 0,
+      "rotacion": 0,
+      "sesgo": 0.06,
+      "calidad": 2,
+      "escalaResolucion": 0.5
+    },
+    "bloom": {
+      "intensidad": 0.35,
+      "umbral": 0.85,
+      "suavizado": 0.2
+    },
+    "vineta": {
+      "desplazamiento": 0.35,
+      "oscuridad": 0.5
+    },
+    "grano": {
+      "opacidad": 0.1
+    }
+  },
+  "modelo": {
+    "_nota": "diorama autorado en Blender. Mientras 'archivo' sea null se usa el greybox procedural. Se puede probar un .glb sin tocar el theme con ?modelo=nombre.glb en la URL (el archivo debe estar en public/).",
+    "archivo": null,
+    "ajusteAutomatico": true,
+    "tamanoObjetivo": 12
   },
   "paleta": {
     "agua": "#3a5a6a",

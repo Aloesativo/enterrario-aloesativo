@@ -37,6 +37,10 @@ Basta con abrirla en cualquier navegador. Parámetros de prueba en la URL:
 
 - `?semilla=texto-o-numero` — misma semilla, mismo diorama (reproducible).
 - `?tamano=20` — tamaño de la grilla (default 12x12).
+- `?postproceso=off` — apaga la cadena de postproceso, para comparar el
+  antes/después del tilt-shift sin editar nada.
+- `?modelo=archivo.glb` — carga un diorama autorado en vez del procedural.
+  El archivo tiene que estar en `public/`. Si falla, se ve el greybox.
 
 Nota histórica: se evaluaron StackBlitz y Claude Artifacts como formas de
 previsualizar sin instalar nada — ninguna terminó siendo la vía estable
@@ -59,3 +63,27 @@ falta más para el prototipo), agua en las celdas más bajas, props cúbicos
 esparcidos al azar. Sin identidad visual todavía — es exactamente lo que
 se espera del prototipo en esta etapa: validar que la *composición*
 generada se vea bien en isométrico antes de gastar tiempo en arte.
+
+Sobre ese greybox ya está montada la cadena de imagen completa:
+iluminación de entorno (IBL), tone mapping filmico, sombras proyectadas y
+postproceso con tilt-shift, bloom, viñeta y grano. El tilt-shift es el
+que hace que la escena se lea como *miniatura fotografiada* en vez de
+render genérico — compáralo con `?postproceso=off`.
+
+Todos los valores viven en `src/theme/default.json` como placeholders
+marcados. El mecanismo está; el look lo define RR.
+
+## El camino hacia el diorama autorado
+
+La generación procedural resuelve "necesito contenido infinito y barato".
+El Enterrario necesita lo contrario: unas pocas escenas concretas que
+cuenten algo. Por eso `src/render/modelo.js` permite cargar un `.glb`
+modelado en Blender, que además habilita **hornear la iluminación**
+(calidad de raytracing incrustada en las texturas, coste cero en runtime).
+
+Mientras no exista ese `.glb`, el greybox procedural sigue siendo lo que
+se ve. Se puede probar uno sin tocar código con `?modelo=archivo.glb`.
+
+Nota al exportar desde Blender: **sin compresión Draco**. El decodificador
+es un wasm aparte que el cargador no incluye, así que un `.glb` con Draco
+falla y cae al greybox (queda avisado en la consola).

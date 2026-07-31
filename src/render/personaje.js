@@ -12,7 +12,12 @@ const ALTO_PERSONAJE = TAMANO_CELDA * 0.55;
 export function construirPersonaje({ theme }) {
   const geometria = new THREE.BoxGeometry(ALTO_PERSONAJE, ALTO_PERSONAJE, ALTO_PERSONAJE);
   const material = new THREE.MeshStandardMaterial({ color: theme.paleta.personaje });
-  return new THREE.Mesh(geometria, material);
+  const mesh = new THREE.Mesh(geometria, material);
+  // El personaje sí proyecta sombra: es el objeto cuya posición el ojo
+  // necesita leer con precisión, y la sombra es lo que dice a qué altura
+  // del terreno está parado.
+  mesh.castShadow = theme.sombras?.activas !== false;
+  return mesh;
 }
 
 /** Elige una celda de partida cerca del centro que no sea agua. */
