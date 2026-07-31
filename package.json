@@ -1,0 +1,18 @@
+{
+  "name": "enterrario-aloesativo",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Enterrario — diorama 3D isométrico procedural del universo Aloesativo (prototipo).",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}
