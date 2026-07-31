@@ -24,17 +24,33 @@ es un placeholder "greybox" (grises lisos) — cuando tengas paleta y estilo
 de material definidos, se reemplaza ese archivo (o se agregan temas
 alternativos) sin tocar `generator/` ni la lógica de `render/`.
 
-## Correr el prototipo
+## Cómo ver el prototipo funcionando (sin instalar nada)
+
+**No hace falta instalar Node ni nada localmente para verlo.** Cada push a
+`main` se compila y publica solo, vía GitHub Actions
+(`.github/workflows/deploy.yml`), en:
+
+**https://aloesativo.github.io/enterrario-aloesativo/**
+
+Esa URL es fija — se actualiza sola en 1-2 minutos después de cada push.
+Basta con abrirla en cualquier navegador. Parámetros de prueba en la URL:
+
+- `?semilla=texto-o-numero` — misma semilla, mismo diorama (reproducible).
+- `?tamano=20` — tamaño de la grilla (default 12x12).
+
+Nota histórica: se evaluaron StackBlitz y Claude Artifacts como formas de
+previsualizar sin instalar nada — ninguna terminó siendo la vía estable
+(StackBlitz requiere que el usuario abra sesión con su GitHub; Artifacts
+requiere republicar a mano cada vez y no acepta HTML con `<html>/<head>/
+<body>` propios). GitHub Pages + Actions es la que quedó como flujo
+definitivo: una sola URL, se actualiza sola, cero pasos manuales.
+
+## Desarrollo (para quien sí quiera correrlo local)
 
 ```bash
 npm install
 npm run dev
 ```
-
-Abre la URL que imprime Vite. Parámetros de prueba en la URL:
-
-- `?semilla=texto-o-numero` — misma semilla, mismo diorama (reproducible).
-- `?tamano=20` — tamaño de la grilla (default 12x12).
 
 ## Estado actual
 

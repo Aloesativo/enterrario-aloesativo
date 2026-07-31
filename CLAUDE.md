@@ -29,3 +29,21 @@ nunca elegir colores o estilo por su cuenta.
 
 ## Disciplina de cambios
 Todo cambio termina en commit con mensaje descriptivo en español.
+
+## Despliegue: GitHub Pages, no local
+RR no quiere instalar herramientas de desarrollo en su máquina (la usa
+para música). El flujo de trabajo es: cambios → push a `main` →
+`.github/workflows/deploy.yml` compila y publica solo en
+`https://aloesativo.github.io/enterrario-aloesativo/`. Esa es LA URL para
+que RR vea el estado del prototipo — nunca generar un Artifact ni mandar
+un link de StackBlitz como sustituto; ya se probaron ambos y no
+funcionaron como flujo estable (ver README, sección correspondiente).
+Si se cambia `vite.config.js`, cuidado con `base: '/enterrario-aloesativo/'`
+— tiene que coincidir con la subruta real de Pages o los assets no cargan.
+
+## Lección del bug de niebla (2026-07-31)
+La niebla (`theme.niebla`) tiene que tener `lejos` mayor a la distancia
+real cámara↔objeto, si no todo se pinta invisible (color de niebla ≈
+color de fondo) aunque geometría/luces/cámara estén bien. Si algo se ve
+"negro" sin motivo aparente, revisar la niebla ANTES que luces o cámara —
+es la causa más barata de descartar y la más fácil de pasar por alto.
