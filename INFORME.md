@@ -55,12 +55,15 @@ vite.config.js             base: '/enterrario-aloesativo/'  (crítico para Pages
 src/main.js                Cableado: arma el grafo y corre el bucle
 src/generator/seed.js      PRNG determinista (mulberry32) + hash de texto a semilla
 src/generator/grid.js      Genera la grilla de celdas (altura, tipo, props)
-src/render/scene.js        Escena, luces, renderer, suscripción a resize
+src/render/scene.js        Escena, luces, sombras, renderer, resize
 src/render/camera.js       Director de cámara (el módulo más denso)
 src/render/controls.js     Entrada → órdenes al director
 src/render/tiles.js        Celdas de datos → mallas de bloques
 src/render/personaje.js    Malla del personaje + movimiento por la grilla
-src/theme/default.json     Paleta, luces, niebla
+src/render/entorno.js      IBL (luz de entorno) + tone mapping
+src/render/postproceso.js  Efectos: tilt-shift, bloom, viñeta, grano, SMAA
+src/render/modelo.js       Carga de diorama autorado (.glb), con respaldo
+src/theme/default.json     Paleta, luces, niebla, entorno, sombras, postproceso
 src/theme/planos.json      Grilla de encuadres + shot list
 ```
 
@@ -169,6 +172,15 @@ planos la distancia dejó de ser constante, así que `theme.niebla` guarda
 `near`/`far` por frame. Si alguien vuelve a poner distancias absolutas, el
 bug reaparece solo en algunos planos — peor, porque parece intermitente.
 
+**Sombras que parecen no funcionar.** Con el sol en `[10, 20, 10]`
+(~55° de altura) las sombras salen tan cortas que el propio objeto las tapa
+desde la cámara casi cenital del plano base. Parece que `castShadow` no
+está haciendo nada. **Lo está haciendo**: con un sol rasante tipo
+`[16, 5, 7]` aparecen de inmediato. Verificado por captura el 2026-07-31.
+Trampa dentro de la trampa: bajar la luz ambiental o `entorno.intensidad`
+NO es lo que las hace visibles — se probaron ambas y el cambio es marginal.
+El ángulo es la variable, y vive en `theme.luz.posicion`.
+
 **`base` de Vite.** `vite.config.js` tiene `base: '/enterrario-aloesativo/'`
 y tiene que coincidir con la subruta real de Pages o no carga ningún asset.
 
@@ -204,27 +216,50 @@ arbitrarios, no propuestas. Lo mismo vale para los números de
 concretos (qué ángulo, qué encuadre, qué cuenta cada plano) le corresponden
 a RR.
 
-Direcciones técnicas discutidas para darle personalidad, ordenadas por
-impacto sobre esfuerzo, **ninguna aplicada todavía**:
+Direcciones técnicas discutidas para darle personalidad. **El mecanismo de
+1, 2 y 4 ya está montado** (2026-07-31); los valores siguen siendo
+placeholders a la espera de RR:
 
-1. **Tilt-shift / profundidad de campo falsa** — es el efecto que hace que
-   un diorama se lea como miniatura fotografiada en vez de escena 3D
-   genérica. Barato, altísimo impacto.
-2. **Sombras proyectadas** (`castShadow`/`receiveShadow`, hoy apagadas) —
-   sin ellas los bloques flotan visualmente aunque estén bien puestos.
-3. **Ambient occlusion en las juntas** — hace que el voxel-grid se lea como
-   objeto físico.
-4. **Grano + viñeta** — rompe la limpieza de "render de motor de juego".
-5. **Cel-shading con contorno** — cambia el lenguaje visual entero; es una
-   decisión de identidad grande, no un ajuste incremental.
-6. **Wobble sutil en vértices** — rompe la perfección geométrica, da
+1. ✅ **Tilt-shift / profundidad de campo falsa** — montado en
+   `render/postproceso.js`. Es el efecto que hace que un diorama se lea
+   como miniatura fotografiada: al desenfocar arriba y abajo dejando una
+   franja nítida, el ojo interpreta profundidad de campo corta, y eso solo
+   ocurre de verdad al fotografiar algo muy pequeño muy de cerca.
+   Comparación directa con `?postproceso=off`.
+2. ✅ **Sombras proyectadas** — activas en `render/scene.js`. Ver abajo la
+   trampa del ángulo del sol.
+3. ⬜ **Ambient occlusion en las juntas** — hace que el voxel-grid se lea
+   como objeto físico. Pendiente; con `postprocessing` ya instalado, es
+   añadir un efecto más a la cadena.
+4. ✅ **Grano + viñeta** — montados en la misma cadena.
+5. ⬜ **Cel-shading con contorno** — cambia el lenguaje visual entero; es
+   una decisión de identidad grande, no un ajuste incremental.
+6. ⬜ **Wobble sutil en vértices** — rompe la perfección geométrica, da
    sensación artesanal.
+
+**Añadido: iluminación de entorno (IBL).** `render/entorno.js` instala un
+entorno procedural (`RoomEnvironment`) más tone mapping ACES. Es lo que
+separa "tiene luz" de "está en un lugar": una `AmbientLight` suma un color
+plano a todas las caras por igual, un entorno aporta luz distinta según
+hacia dónde mira cada cara. No se commiteó ningún `.hdr` para no meter
+binarios ni licencias al repo; el enchufe queda listo en `theme.entorno`.
 
 ---
 
 ## 9. Tensiones arquitectónicas abiertas
 
 Los puntos que valen una conversación de diseño:
+
+0. **Hornear la luz rompe la regla de las tres capas.** Es la tensión nueva
+   y la más incómoda. Si el diorama pasa a modelarse en Blender con la
+   iluminación horneada en las texturas (que es la vía de más calidad por
+   menos coste en runtime), entonces decisiones de identidad visual —luz,
+   color, materiales— quedan **dentro del `.glb`**, o sea fuera de
+   `theme/`. La regla dice que `theme/` es la única capa que se reemplaza
+   al definir identidad, y con un modelo horneado eso deja de ser cierto.
+   Salida posible: que `theme/` gobierne "qué `.glb` se carga y qué
+   postproceso se le aplica" en vez de "qué color tiene cada cosa". No
+   está decidido — le toca a RR.
 
 1. **¿`planos.json` es identidad o es lógica?** Hoy vive en `theme/` con el
    argumento de que la composición es identidad visual. Pero mezcla dos
