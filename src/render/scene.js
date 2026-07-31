@@ -1,16 +1,19 @@
 import * as THREE from 'three';
 
-// Ángulo isométrico clásico: 45° en Y, ~35.264° de inclinación
-// (arctan(1/√2), el ángulo que hace que un cubo se vea con sus tres caras
-// visibles en proporciones iguales).
-const INCLINACION = Math.atan(1 / Math.sqrt(2));
-
+/**
+ * Monta escena, luces y renderer. La cámara ya NO se crea aquí: vive en
+ * camera.js, porque dejó de ser un objeto fijo (una isométrica quieta) para
+ * pasar a ser un director con estado propio, planos y transiciones.
+ *
+ * Lo que queda aquí es lo que no depende del punto de vista: fondo, niebla
+ * y luces. Los valores de niebla se recalculan por frame en camera.js a
+ * partir de la distancia real de la cámara — aquí solo se instala con
+ * valores iniciales cualesquiera.
+ */
 export function crearEscena({ canvas, theme }) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(theme.fondo);
-  scene.fog = new THREE.Fog(theme.niebla.color, theme.niebla.cerca, theme.niebla.lejos);
-
-  const camera = crearCamaraIsometrica();
+  scene.fog = new THREE.Fog(theme.niebla.color, 1, 100);
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -23,38 +26,29 @@ export function crearEscena({ canvas, theme }) {
   luzDireccional.position.set(10, 20, 10);
   scene.add(luzAmbiental, luzDireccional);
 
+  const suscriptores = [];
+
   function ajustarTamano() {
     const ancho = window.innerWidth;
     const alto = window.innerHeight;
     renderer.setSize(ancho, alto);
-    const aspecto = ancho / alto;
-    const frustumAltura = camera.userData.frustumAltura;
-    camera.left = (-frustumAltura * aspecto) / 2;
-    camera.right = (frustumAltura * aspecto) / 2;
-    camera.top = frustumAltura / 2;
-    camera.bottom = -frustumAltura / 2;
-    camera.updateProjectionMatrix();
+    for (const suscriptor of suscriptores) suscriptor(ancho, alto);
   }
+
   window.addEventListener('resize', ajustarTamano);
   window.addEventListener('orientationchange', ajustarTamano);
+
+  /**
+   * Permite que el director de cámara (u otros) reaccionen al tamaño real
+   * de la ventana. Se llama de inmediato al suscribirse para que el estado
+   * inicial sea correcto tanto en retrato como en apaisado.
+   */
+  function alRedimensionar(suscriptor) {
+    suscriptores.push(suscriptor);
+    suscriptor(window.innerWidth, window.innerHeight);
+  }
+
   ajustarTamano();
 
-  return { scene, camera, renderer };
-}
-
-function crearCamaraIsometrica(frustumAltura = 20, distancia = 50) {
-  const camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 200);
-  camera.userData.frustumAltura = frustumAltura;
-
-  // Posiciona la cámara sobre la diagonal del cubo unitario y la apunta
-  // al origen: eso da la vista isométrica sin tener que rotar la escena.
-  const y = distancia * Math.sin(INCLINACION);
-  const radioHorizontal = distancia * Math.cos(INCLINACION);
-  camera.position.set(
-    radioHorizontal * Math.cos(Math.PI / 4),
-    y,
-    radioHorizontal * Math.sin(Math.PI / 4)
-  );
-  camera.lookAt(0, 0, 0);
-  return camera;
+  return { scene, renderer, alRedimensionar };
 }
