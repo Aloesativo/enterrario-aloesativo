@@ -30,6 +30,17 @@ nunca elegir colores o estilo por su cuenta.
 ## Disciplina de cambios
 Todo cambio termina en commit con mensaje descriptivo en español.
 
+## Flujo de fusión: directo a main, sin pedir permiso (2026-07-31)
+RR quiere iterar rápido y ver el resultado en Pages sin fricción de
+revisión. Instrucción explícita y permanente: cuando el agente termine
+una propuesta funcional, la fusiona a `main` por su cuenta — abre PR,
+lo pasa a "ready" y lo fusiona sin esperar aprobación de RR en el chat.
+No importa si algo queda roto o a medio pulir: se prioriza ver el avance
+funcionando ("al tiro") sobre la perfección del PR. Esto reemplaza el
+comportamiento por defecto de pedir confirmación antes de fusionar —
+para *este* repo, la fusión a main ya está autorizada de antemano en
+cada tarea, no hace falta preguntar de nuevo cada vez.
+
 ## Despliegue: GitHub Pages, no local
 RR no quiere instalar herramientas de desarrollo en su máquina (la usa
 para música). El flujo de trabajo es: cambios → push a `main` →

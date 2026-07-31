@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
-const TAMANO_CELDA = 1;
-const ALTO_BLOQUE = 0.5;
+export const TAMANO_CELDA = 1;
+export const ALTO_BLOQUE = 0.5;
 
 /**
  * Construye las mallas del diorama a partir de los datos del generador
