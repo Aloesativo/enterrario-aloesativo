@@ -2,7 +2,7 @@
   "nombre": "greybox",
   "descripcion": "Tema placeholder sin identidad visual. Solo sirve para validar la generación procedural. Reemplazar cuando exista una identidad definida (ver README, sección 'Identidad visual').",
   "fondo": "#1a1a1a",
-  "niebla": { "color": "#1a1a1a", "cerca": 20, "lejos": 45 },
+  "niebla": { "color": "#1a1a1a", "cerca": 40, "lejos": 95 },
   "luz": {
     "ambiental": "#404040",
     "direccional": "#ffffff",
