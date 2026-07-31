@@ -1,6 +1,8 @@
+import * as THREE from 'three';
 import { generarDiorama } from './generator/grid.js';
 import { crearEscena } from './render/scene.js';
 import { construirDiorama } from './render/tiles.js';
+import { crearControlesRubik } from './render/controls.js';
 import { stringASemilla } from './generator/seed.js';
 import theme from './theme/default.json';
 
@@ -16,13 +18,23 @@ const { scene, camera, renderer } = crearEscena({ canvas, theme });
 
 const diorama = generarDiorama({ semilla, tamano });
 const grupoDiorama = construirDiorama({ diorama, theme });
-scene.add(grupoDiorama);
+
+// El diorama vive dentro de un "rig" rotable: los controles giran este
+// grupo (no la cámara), imitando un cubo tipo rubik que se puede orientar
+// libremente en sus 3 ejes mientras la vista isométrica permanece fija.
+const rig = new THREE.Group();
+rig.add(grupoDiorama);
+scene.add(rig);
+
+const controles = crearControlesRubik({ camera, canvas, objetivo: rig });
 
 document.getElementById('hud').textContent =
-  `semilla: ${semillaTexto} (${semilla}) · tamaño: ${tamano} · ?semilla=X para probar otra`;
+  `semilla: ${semillaTexto} (${semilla}) · tamaño: ${tamano} · ?semilla=X para probar otra · ` +
+  'arrastra para rotar · 2 dedos para girar · doble tap / R para resetear';
 
 function animar() {
   requestAnimationFrame(animar);
+  controles.actualizar();
   renderer.render(scene, camera);
 }
 animar();

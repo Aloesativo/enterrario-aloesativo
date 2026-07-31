@@ -36,6 +36,7 @@ export function crearEscena({ canvas, theme }) {
     camera.updateProjectionMatrix();
   }
   window.addEventListener('resize', ajustarTamano);
+  window.addEventListener('orientationchange', ajustarTamano);
   ajustarTamano();
 
   return { scene, camera, renderer };
