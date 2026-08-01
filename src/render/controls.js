@@ -17,7 +17,14 @@
  *
  * Las flechas NO están aquí: son del personaje (ver personaje.js).
  */
-export function crearControlesCamara({ canvas, director, alCambiarPlano }) {
+export function crearControlesCamara({
+  canvas,
+  director,
+  alCambiarPlano,
+  alZona,
+  alReiniciar,
+  alPausarReloj,
+}) {
   const SENSIBILIDAD_ARRASTRE = 0.006;
   const SENSIBILIDAD_TORSION = 1.0;
   const SENSIBILIDAD_GAMEPAD = 0.03;
@@ -40,13 +47,21 @@ export function crearControlesCamara({ canvas, director, alCambiarPlano }) {
   }
 
   // --- Pointer (mouse + touch) — órbita libre ---
+  // Origen del toque, para distinguir un TOQUE de un ARRASTRE al soltar.
+  let origenToque = null;
+
   function alPointerDown(evento) {
     canvas.setPointerCapture(evento.pointerId);
     punteros.set(evento.pointerId, { x: evento.clientX, y: evento.clientY });
     velocidad.azimut = 0;
     velocidad.elevacion = 0;
     velocidad.roll = 0;
-    if (punteros.size === 1) vibrar(10);
+    if (punteros.size === 1) {
+      origenToque = { x: evento.clientX, y: evento.clientY, t: performance.now() };
+      vibrar(10);
+    } else {
+      origenToque = null;
+    }
   }
 
   function alPointerMove(evento) {
@@ -78,9 +93,45 @@ export function crearControlesCamara({ canvas, director, alCambiarPlano }) {
     punteros.set(evento.pointerId, actual);
   }
 
+  /**
+   * Navegación por zonas en táctil, sin pelear con la órbita.
+   *
+   * Se descartó el swipe horizontal: un arrastre rápido de lado a lado es
+   * exactamente lo que hace alguien orbitando, así que los dos gestos
+   * competirían y la cámara cambiaría de zona sola. Un TOQUE (sin
+   * desplazamiento) en el borde lateral es inequívoco: si el dedo no se
+   * movió, no estabas orbitando.
+   */
+  const BANDA_BORDE = 0.18;   // proporción del ancho que cuenta como borde
+  const UMBRAL_TOQUE = 12;    // px: más que esto ya es arrastre, no toque
+  const MS_TOQUE = 500;
+
   function alPointerUp(evento) {
     punteros.delete(evento.pointerId);
     if (punteros.size < 2) anguloTorsionPrevio = null;
+
+    if (!origenToque || !alZona) {
+      origenToque = null;
+      return;
+    }
+
+    const recorrido = Math.hypot(
+      evento.clientX - origenToque.x,
+      evento.clientY - origenToque.y
+    );
+    const duracion = performance.now() - origenToque.t;
+    origenToque = null;
+
+    if (recorrido > UMBRAL_TOQUE || duracion > MS_TOQUE) return;
+
+    const ancho = canvas.clientWidth || window.innerWidth;
+    if (evento.clientX < ancho * BANDA_BORDE) {
+      alZona(-1);
+      vibrar([12, 30, 12]);
+    } else if (evento.clientX > ancho * (1 - BANDA_BORDE)) {
+      alZona(1);
+      vibrar([12, 30, 12]);
+    }
   }
 
   function alDobleClick() {
@@ -113,9 +164,28 @@ export function crearControlesCamara({ canvas, director, alCambiarPlano }) {
       case 'S':
         anunciar(director.paso({ elevacion: -1 }));
         break;
+      // Izquierda/derecha recorren el mapa. Es el verbo primario del lore
+      // ("desplazamiento sin rotar, zoom a zonas"), así que se queda con
+      // el gesto más disponible; orbitar pasa a ser secundario y explícito.
+      case 'ArrowLeft':
+        evento.preventDefault();
+        alZona?.(-1);
+        vibrar([12, 30, 12]);
+        break;
+      case 'ArrowRight':
+        evento.preventDefault();
+        alZona?.(1);
+        vibrar([12, 30, 12]);
+        break;
+      case ' ':
+        evento.preventDefault();
+        alPausarReloj?.();
+        vibrar(20);
+        break;
       case 'r':
       case 'R':
-        anunciar(director.volverAlPlanoBase());
+        if (alReiniciar) alReiniciar();
+        else anunciar(director.volverAlPlanoBase());
         break;
       default:
         return;
@@ -156,13 +226,18 @@ export function crearControlesCamara({ canvas, director, alCambiarPlano }) {
       velocidad.roll = roll;
     }
 
-    // Los bumpers dan acceso a los pasos por planos también en gamepad:
-    // sin ellos, un control sin teclado se quedaría solo con órbita libre y
-    // nunca alcanzaría los encuadres curados.
-    pulsacion(gamepad, BOTON_PASO_IZQ, 'pasoIzq', () => anunciar(director.paso({ azimut: -1 })));
-    pulsacion(gamepad, BOTON_PASO_DER, 'pasoDer', () => anunciar(director.paso({ azimut: 1 })));
+    // Los bumpers pasaron de mover el azimut a recorrer el mapa: ahora que
+    // el verbo primario es viajar entre zonas, es lo que corresponde al
+    // botón más accesible. Orbitar sigue disponible en el stick.
+    pulsacion(gamepad, BOTON_PASO_IZQ, 'pasoIzq', () =>
+      alZona ? alZona(-1) : anunciar(director.paso({ azimut: -1 }))
+    );
+    pulsacion(gamepad, BOTON_PASO_DER, 'pasoDer', () =>
+      alZona ? alZona(1) : anunciar(director.paso({ azimut: 1 }))
+    );
     pulsacion(gamepad, BOTON_RESET, 'reset', () => {
-      anunciar(director.volverAlPlanoBase());
+      if (alReiniciar) alReiniciar();
+      else anunciar(director.volverAlPlanoBase());
       const actuador = gamepad.vibrationActuator ?? gamepad.hapticActuators?.[0];
       if (actuador?.playEffect) {
         actuador.playEffect('dual-rumble', {

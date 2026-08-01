@@ -10,6 +10,92 @@
     "elevacionInicial": 2
   },
 
+  "mapa": {
+    "descripcion": "Dónde se para cada zona del guion y cómo se encuadra. Es la traducción espacial de src/story/burdeo.json: el guion dice QUÉ zonas existen y qué suena en cada una; esto dice DÓNDE están y cómo se miran. Vive en theme/ por la misma razón que el shot list — la composición es identidad visual. TODOS LOS NÚMEROS SON PLACEHOLDERS: la disposición del mapa (qué está cerca de qué, a qué escala) es diseño de RR.",
+    "zonaInicial": "ciudad",
+    "_pendiente": "El lore dice que el mapa conecta múltiples escalas dentro de una misma temporalidad (playa, ciudad, carretera, edificio, luna, espacio, planeta, cometa, otros mundos). Esta disposición es una propuesta de estructura para que el recorrido funcione, no una decisión de diseño.",
+
+    "zonas": {
+      "ciudad": {
+        "objetivo": [0, 1, 0],
+        "tamano": 12,
+        "encuadre": 20,
+        "fov": 12,
+        "elevacion": 35.264
+      },
+      "ciudad-calle": {
+        "objetivo": [0, 0.6, 0],
+        "tamano": 4,
+        "encuadre": 7,
+        "fov": 38,
+        "elevacion": 6
+      },
+      "edificio": {
+        "objetivo": [3, 3, -2],
+        "tamano": 3,
+        "encuadre": 9,
+        "fov": 28,
+        "elevacion": 20
+      },
+      "playa": {
+        "objetivo": [-22, 0.4, 8],
+        "tamano": 10,
+        "encuadre": 16,
+        "fov": 14,
+        "elevacion": 20
+      },
+      "bosque": {
+        "objetivo": [16, 0.8, 14],
+        "tamano": 9,
+        "encuadre": 15,
+        "fov": 16,
+        "elevacion": 20
+      },
+      "carretera": {
+        "objetivo": [-6, 0.3, 20],
+        "tamano": 14,
+        "encuadre": 18,
+        "fov": 12,
+        "elevacion": 35.264
+      },
+      "luna": {
+        "objetivo": [10, 26, -14],
+        "tamano": 6,
+        "encuadre": 11,
+        "fov": 16,
+        "elevacion": 20
+      },
+      "cometa": {
+        "objetivo": [-14, 34, 10],
+        "tamano": 2,
+        "encuadre": 22,
+        "fov": 30,
+        "elevacion": 6
+      },
+      "espacio": {
+        "objetivo": [0, 52, 0],
+        "tamano": 30,
+        "encuadre": 60,
+        "fov": 20,
+        "elevacion": 55
+      },
+      "otro-planeta": {
+        "objetivo": [46, 40, -34],
+        "tamano": 8,
+        "encuadre": 14,
+        "fov": 18,
+        "elevacion": 20
+      },
+      "otros-mundos": {
+        "objetivo": [-52, 46, -40],
+        "tamano": 7,
+        "encuadre": 20,
+        "fov": 22,
+        "elevacion": 20
+      }
+    }
+  },
+
   "encuadreGenerico": {
     "descripcion": "Framing por defecto de cualquier celda sin plano curado. Mantiene el look isométrico: fov muy bajo ≈ proyección ortográfica.",
     "encuadre": 20,

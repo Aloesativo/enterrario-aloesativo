@@ -15,22 +15,29 @@
   },
 
   "bucle": {
-    "_pendiente": "Duración y posición absoluta de cada ventana. El lore solo declara RELACIONES entre canciones, no números. Los valores concretos le tocan a RR.",
-    "duracionSegundos": null,
+    "_pendiente": "NÚMEROS PROVISIONALES, puestos para que la mecánica se pueda ver funcionando. El lore solo declara RELACIONES entre canciones ('comparte ventana con', 'otro momento', 'tiempo similar pero en momentos distintos'), nunca segundos. Lo que SÍ respeta esta propuesta son esas relaciones; las duraciones concretas le tocan a RR.",
+    "duracionSegundos": 120,
     "ventanas": [
       {
         "id": "cometa",
         "titulo": "El paso del cometa",
         "descripcion": "Volando suave atraviesa Burdeo y hace que Burdeo 'se vea Burdeo'. Es la ventana de referencia: las demás se describen respecto de esta.",
-        "inicio": null,
-        "fin": null
+        "inicio": 0,
+        "fin": 45
+      },
+      {
+        "id": "reflejo",
+        "titulo": "El reflejo en la ciudad",
+        "descripcion": "Solapa con el paso del cometa pero no coincide: desde la ciudad se ve el reflejo, no el cometa. El lore dice 'tiempo similar, pero en momentos distintos' — de ahí que la ventana se corra en vez de compartirse.",
+        "inicio": 30,
+        "fin": 70
       },
       {
         "id": "luna",
         "titulo": "Otro momento",
-        "descripcion": "Distinto al del cometa. El lore no dice cuál ni en qué orden.",
-        "inicio": null,
-        "fin": null
+        "descripcion": "Distinto al del cometa. El lore no dice cuál ni en qué orden; aquí se pone después, sin solaparse.",
+        "inicio": 80,
+        "fin": 115
       }
     ]
   },
@@ -150,9 +157,9 @@
       "titulo": "Dime tú",
       "tipo": "tematica",
       "zona": "ciudad",
-      "ventana": "cometa",
+      "ventana": "reflejo",
       "relacion": "Tiempo SIMILAR al de Volando suave, pero en momentos distintos: ve el reflejo del cometa en la ciudad, no el cometa mismo.",
-      "_pendiente": "Si 'similar pero distinto' debe ser una ventana propia solapada o un desfase dentro de la del cometa. El lore no lo precisa.",
+      "_pendiente": "Se resolvió como ventana propia SOLAPADA con la del cometa, que es la lectura más literal de 'similar pero en momentos distintos'. La otra lectura posible era un desfase dentro de la misma ventana. El lore no lo precisa.",
       "cuenta": "El reflejo, no el hecho."
     },
     {

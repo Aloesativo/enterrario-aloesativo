@@ -298,33 +298,51 @@ Los puntos que valen una conversación de diseño:
    elegido no cuenta nada. Es exactamente el tipo de número que le toca
    ajustar a RR.
 
-7. **El lore pide desplazar; el render orbita.** La tensión más importante
-   que abre `src/story/`. `mapa-burdeo.md` describe el mecanismo con
-   precisión: *"vista desde arriba, **desplazamiento sin rotar**, zoom a
-   zonas específicas"*. El `camera.js` actual hace justo lo contrario —
-   orbita (azimut/elevación) y voltea el mundo. Son dos verbos de
-   navegación distintos: **recorrer un mapa** frente a **rodear un objeto**.
+7. ~~**El lore pide desplazar; el render orbita.**~~ **RESUELTO
+   (2026-08-01) integrando, no eligiendo.** El verbo primario pasó a ser
+   recorrer el mapa por zonas (← → / bordes táctiles / bumpers), como pide
+   `mapa-burdeo.md`. Orbitar no se eliminó: bajó a gesto secundario
+   (A/D/W/S y arrastre).
 
-   Lo que NO se pierde si se cambia: el director de cámara, los planos
-   curados y las transiciones siguen sirviendo — un "zoom a zona" ES un
-   cambio de plano, y tener lenguaje cinematográfico para las transiciones
-   entre zonas es mejor que un paneo crudo. Lo que cambia es cuál es el
-   gesto primario del usuario.
+   La clave de que no se perdiera nada: **ir a una zona ES un cambio de
+   plano**. `camera.js` extrajo su motor de transición (`transicionarA`) y
+   ahora lo comparten los dos modos — solo cambia de dónde sale el
+   encuadre, de la grilla de planos o del mapa. Así el viaje entre zonas
+   conserva el lenguaje cinematográfico en vez de ser un paneo crudo, que
+   era exactamente lo que valía la pena conservar de la versión anterior.
 
-   Tampoco está dicho que el lore mande sobre el prototipo: puede que
-   orbitar sea mejor de lo que el lore imaginó. Pero es una decisión
-   consciente de RR, no algo que se deba resolver por inercia.
+   El objetivo de cámara admite ahora un punto arbitrario `[x,y,z]`, no
+   solo 'centro' y 'personaje'. Esa era la limitación real que impedía
+   recorrer un mapa: el director sabía encuadrar UN objeto.
 
-8. **El bucle temporal existe como relación, no como número.** El lore
-   declara "comparte ventana con", "otro momento", "tiempo similar pero en
-   momentos distintos" — nunca segundos. `story/index.js` ya implementa y
-   tiene probado el filtrado por ventanas (incluidas las que dan la vuelta
-   al bucle), pero hasta que RR ponga duraciones, `bucleDefinido` es
-   `false` y las consultas devuelven `MOTIVO.BUCLE_SIN_DEFINIR`.
+8. **El bucle corre con números provisionales.** El lore declara
+   relaciones ("comparte ventana con", "otro momento", "tiempo similar
+   pero en momentos distintos"), nunca segundos. Para que la mecánica se
+   pudiera *ver*, se propusieron duraciones que **respetan las relaciones**
+   pero cuyos valores son de RR: bucle de 120s, cometa 0–45, reflejo
+   30–70 (solapado, que es la lectura literal de "similar pero en momentos
+   distintos"), luna 80–115.
 
    Aviso del propio lore que conviene respetar: las ventanas temporales
    **no son el punto central del diseño**, sirven para separar los
-   elementos y darles orden. No sobre-construir el sistema de tiempo.
+   elementos y darles orden. `story/reloj.js` es deliberadamente mínimo
+   por eso — un contador y una fase, nada de líneas de tiempo ni eventos.
+
+9. **Cuatro zonas siguen sin canción y tres canciones sin ventana.** No es
+   deuda técnica, es lore que falta: `carretera`, `edificio`, `espacio` y
+   `otros-mundos` aparecen en `mapa-burdeo` como escalas del mapa pero sin
+   tema asignado; `Corazón roto`, `Cuando la veo` y `No puedo olvidar
+   (I–III)` tienen lugar pero no momento. El HUD lo dice con un motivo
+   propio (`MOTIVO.SIN_VENTANA`) en vez de callar, para que el trabajo
+   pendiente se vea en el prototipo y no se confunda con un silencio
+   correcto de la mecánica.
+
+10. **Falta la serie instrumental completa.** "Música para hacer nada" es
+    la capa que suena SIEMPRE en su zona, independiente del bucle — o sea
+    la mitad del diseño sonoro. El lore describe la serie (plantas,
+    gnomos, estatuas) pero no lista los temas, así que hoy
+    `instrumentalesDeZona()` devuelve vacío en todas partes. La forma de
+    la respuesta ya es la definitiva.
 
 ---
 
