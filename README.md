@@ -13,10 +13,15 @@ lea automáticamente.
 ## Arquitectura: tres capas independientes
 
 ```
-src/generator/   → datos puros (grilla, alturas, semilla). No sabe de Three.js ni colores.
-src/render/      → Three.js: cámara isométrica ortográfica + traduce datos a mallas.
+src/generator/   → datos puros generados (grilla, alturas, semilla). No sabe de Three.js ni colores.
+src/story/       → datos puros autorados: el guion (zonas, canciones, bucle). Tampoco sabe de Three.js.
+src/render/      → Three.js: cámara + traduce datos a mallas.
 src/theme/       → paleta/materiales. Es lo único que cambia cuando definas identidad visual.
 ```
+
+(Son cuatro carpetas pero tres capas: `generator/` y `story/` son la misma
+capa de datos puros — una los genera por algoritmo, la otra los trae
+autorados desde el lore. Ver `src/story/README.md`.)
 
 La razón de separarlas así: hoy no hay identidad visual definida, pero la
 generación procedural sí se puede empezar a probar. `src/theme/default.json`

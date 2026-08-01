@@ -63,6 +63,8 @@ src/render/personaje.js    Malla del personaje + movimiento por la grilla
 src/render/entorno.js      IBL (luz de entorno) + tone mapping
 src/render/postproceso.js  Efectos: tilt-shift, bloom, viñeta, grano, SMAA
 src/render/modelo.js       Carga de diorama autorado (.glb), con respaldo
+src/story/burdeo.json      Guion: zonas, canciones, bucle (copia curada)
+src/story/index.js         Consultas del guion + validador de coherencia
 src/theme/default.json     Paleta, luces, niebla, entorno, sombras, postproceso
 src/theme/planos.json      Grilla de encuadres + shot list
 ```
@@ -267,12 +269,14 @@ Los puntos que valen una conversación de diseño:
    existen) y decisiones de dirección (qué cuenta cada plano). Podrían
    separarse.
 
-2. **El generador no sabe nada del personaje.** `grid.js` produce terreno;
-   la celda inicial se elige después, en `render/`. Si el personaje va a
-   tener reglas de juego (objetivos, colisiones ricas, items), esa lógica no
-   cabe ni en `generator/` (que es datos puros) ni en `render/` (que es
-   traducción). **Probablemente falta una cuarta capa de simulación/juego.**
-   Es la decisión estructural más importante pendiente.
+2. ~~**Falta una cuarta capa de simulación/juego.**~~ **RESUELTO
+   (2026-08-01), y con otro nombre.** Con el lore a la vista, lo que
+   faltaba no eran reglas de juego: era el **guion**. La capa nueva es
+   `src/story/` — datos puros, hermana de `generator/` (ninguna de las dos
+   importa `three` ni lee `theme/`); la diferencia es que una genera los
+   datos por algoritmo y la otra los trae autorados. Sigue abierto el
+   punto original menor: si el personaje llega a tener reglas ricas
+   (objetivos, items), esas no caben en `story/` tampoco.
 
 3. **El volteo del mundo y la gravedad.** Hoy `volteo` es puramente visual:
    el mundo gira pero el personaje sigue caminando sobre la misma grilla.
@@ -293,6 +297,34 @@ Los puntos que valen una conversación de diseño:
    es una losa plana sin props ni personaje. El mecanismo funciona; el valor
    elegido no cuenta nada. Es exactamente el tipo de número que le toca
    ajustar a RR.
+
+7. **El lore pide desplazar; el render orbita.** La tensión más importante
+   que abre `src/story/`. `mapa-burdeo.md` describe el mecanismo con
+   precisión: *"vista desde arriba, **desplazamiento sin rotar**, zoom a
+   zonas específicas"*. El `camera.js` actual hace justo lo contrario —
+   orbita (azimut/elevación) y voltea el mundo. Son dos verbos de
+   navegación distintos: **recorrer un mapa** frente a **rodear un objeto**.
+
+   Lo que NO se pierde si se cambia: el director de cámara, los planos
+   curados y las transiciones siguen sirviendo — un "zoom a zona" ES un
+   cambio de plano, y tener lenguaje cinematográfico para las transiciones
+   entre zonas es mejor que un paneo crudo. Lo que cambia es cuál es el
+   gesto primario del usuario.
+
+   Tampoco está dicho que el lore mande sobre el prototipo: puede que
+   orbitar sea mejor de lo que el lore imaginó. Pero es una decisión
+   consciente de RR, no algo que se deba resolver por inercia.
+
+8. **El bucle temporal existe como relación, no como número.** El lore
+   declara "comparte ventana con", "otro momento", "tiempo similar pero en
+   momentos distintos" — nunca segundos. `story/index.js` ya implementa y
+   tiene probado el filtrado por ventanas (incluidas las que dan la vuelta
+   al bucle), pero hasta que RR ponga duraciones, `bucleDefinido` es
+   `false` y las consultas devuelven `MOTIVO.BUCLE_SIN_DEFINIR`.
+
+   Aviso del propio lore que conviene respetar: las ventanas temporales
+   **no son el punto central del diseño**, sirven para separar los
+   elementos y darles orden. No sobre-construir el sistema de tiempo.
 
 ---
 
