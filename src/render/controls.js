@@ -13,19 +13,24 @@
  */
 export function crearControles({ canvas, alMover, alRotar, alGesto }) {
   // Los nombres 'arriba'/'abajo' de mundo/proyeccion.js describen el signo
-  // en el espacio de pantalla (A,B), no lo que el ojo ve. Con la cámara de
-  // este juego (azimut 45°, elevación 35.264°) esos dos ejes quedan
-  // invertidos en vertical: el paso que el código llama "arribaDerecha" se
-  // ve, en pantalla, abajo a la derecha — y así con los cuatro. Verificado
-  // por geometría de cámara, no a prueba y error: la base de pantalla de
-  // esta cámara tiene componente-Y negativa sobre el paso +x del mundo.
-  // Este mapeo compensa esa inversión SOLO aquí, en la traducción de
-  // entrada — mundo/ y camera.js no se tocan, su matemática ya es correcta.
+  // en el espacio de pantalla (A,B), no lo que el ojo ve. Esta grilla en
+  // diamante solo tiene CUATRO pasos posibles, y los cuatro son diagonales
+  // en pantalla (NE/SE/SO/NO) — no hay un paso "puro arriba". La pregunta
+  // no es "¿invertido sí o no?", es CUÁL de las dos asignaciones de 45°
+  // (horaria o antihoraria) es la intuitiva.
+  //
+  // La primera corrección (commit anterior) usó la horaria: Arriba→NE,
+  // Derecha→SE, Abajo→SO, Izquierda→NO. Se sentía "rotada" — cada tecla
+  // hacía lo que la vecina anterior debía hacer. La antihoraria es la que
+  // usan los isométricos clásicos: Arriba→NO, Derecha→NE, Abajo→SE,
+  // Izquierda→SO. Verificado por captura tras el cambio: Arriba (NO) y
+  // Derecha (NE) comparten la mitad superior de la pantalla, como se
+  // espera de dos teclas "hacia arriba".
   const DIRECCIONES = {
-    ArrowUp: 'abajoDerecha',
-    ArrowDown: 'arribaIzquierda',
-    ArrowLeft: 'abajoIzquierda',
-    ArrowRight: 'arribaDerecha',
+    ArrowUp: 'abajoIzquierda',
+    ArrowDown: 'arribaDerecha',
+    ArrowLeft: 'arribaIzquierda',
+    ArrowRight: 'abajoDerecha',
   };
 
   const UMBRAL_ARRASTRE = 26; // px mínimos para que un arrastre cuente
@@ -64,9 +69,9 @@ export function crearControles({ canvas, alMover, alRotar, alGesto }) {
     // signo — así cualquier arrastre cae siempre en una de las cuatro, sin
     // zonas muertas donde el gesto no haga nada.
     if (Math.abs(dx) > Math.abs(dy)) {
-      alMover(dx > 0 ? 'arribaDerecha' : 'abajoIzquierda');
+      alMover(dx > 0 ? 'abajoDerecha' : 'arribaIzquierda');
     } else {
-      alMover(dy > 0 ? 'arribaIzquierda' : 'abajoDerecha');
+      alMover(dy > 0 ? 'arribaDerecha' : 'abajoIzquierda');
     }
   }
 
@@ -112,8 +117,8 @@ export function crearControles({ canvas, alMover, alRotar, alGesto }) {
     // El stick da UN paso por empujón, no un chorro continuo: el juego se
     // piensa celda a celda y un movimiento continuo lo volvería resbaladizo.
     if (fuera && !estado.eje) {
-      if (Math.abs(x) > Math.abs(y)) alMover(x > 0 ? 'arribaDerecha' : 'abajoIzquierda');
-      else alMover(y > 0 ? 'arribaIzquierda' : 'abajoDerecha');
+      if (Math.abs(x) > Math.abs(y)) alMover(x > 0 ? 'abajoDerecha' : 'arribaIzquierda');
+      else alMover(y > 0 ? 'arribaDerecha' : 'abajoIzquierda');
     }
     estado.eje = fuera;
 
