@@ -1,0 +1,212 @@
+{
+  "slug": "burdeo",
+  "titulo": "Burdeo",
+  "_fuente": "Copia curada a mano del lore de Aloesativo/Aloesativo (notas: burdeo, mapa-burdeo, musica-para-hacer-nada, volando-suave, cronologia-canciones). Corte: 2026-08-01. NO se sincroniza sola — ver README de esta carpeta.",
+
+  "premisa": "Burdeo no es un lugar aparte del mundo real: es la forma en que se ve el mundo real cuando se lo mira de cerca. Ciudad arquetipo, homogénea, repetida en cualquier parte del planeta. Todo automatizado para funcionar y no para sentir.",
+
+  "mecanismo": {
+    "_fuente": "mapa-burdeo.md",
+    "vista": "isométrica desde arriba",
+    "navegacion": "desplazamiento sin rotar + zoom a zonas",
+    "_tension": "El render actual navega orbitando (azimut/elevación/volteo), no desplazando. Ver INFORME §9.7 — decisión pendiente de RR, no la toma el agente.",
+    "regla": "La canción que suena depende de DÓNDE se mira y de CUÁNDO. Si llegas a un lugar en el momento equivocado del bucle, su canción no suena: en ese momento está pasando otra cosa.",
+    "_nota_de_peso": "El lore es explícito en que las ventanas temporales NO son el punto central del diseño: sirven para separar los elementos y darles orden. Lo que importa es la mecánica espacial-sonora. No sobre-construir el sistema de tiempo."
+  },
+
+  "bucle": {
+    "_pendiente": "Duración y posición absoluta de cada ventana. El lore solo declara RELACIONES entre canciones, no números. Los valores concretos le tocan a RR.",
+    "duracionSegundos": null,
+    "ventanas": [
+      {
+        "id": "cometa",
+        "titulo": "El paso del cometa",
+        "descripcion": "Volando suave atraviesa Burdeo y hace que Burdeo 'se vea Burdeo'. Es la ventana de referencia: las demás se describen respecto de esta.",
+        "inicio": null,
+        "fin": null
+      },
+      {
+        "id": "luna",
+        "titulo": "Otro momento",
+        "descripcion": "Distinto al del cometa. El lore no dice cuál ni en qué orden.",
+        "inicio": null,
+        "fin": null
+      }
+    ]
+  },
+
+  "zonas": [
+    {
+      "id": "ciudad",
+      "titulo": "Burdeo (ciudad)",
+      "escala": "ciudad",
+      "color": "burdeo",
+      "descripcion": "Concreto, guetos verticales, población adormecida con droga y tecnología. Los habitantes son mezcla de NPC y protagonista: los NPC son el decorado, igual de profundos que quien protagoniza.",
+      "hitos": [
+        {
+          "id": "burdeo-bb",
+          "titulo": "Burdeo BB",
+          "descripcion": "Las dos torres, los dos pilares fundamentales de la ciudad. La sociedad las idolatra: dolor social glorificado, un trauma vuelto monumento.",
+          "_nota": "Sin relación buscada con el 11-S — la forma de dos torres no es una referencia deliberada. No ilustrarlo como tal."
+        }
+      ]
+    },
+    {
+      "id": "ciudad-calle",
+      "titulo": "Ciudad, nivel calle",
+      "escala": "calle",
+      "color": null,
+      "descripcion": "El mismo Burdeo pero a ras de suelo, donde los NPC hablan en vez de contemplar."
+    },
+    {
+      "id": "playa",
+      "titulo": "Playa / costas",
+      "escala": "costa",
+      "color": null,
+      "descripcion": "Conectada a Burdeo dentro del mismo mapa."
+    },
+    {
+      "id": "bosque",
+      "titulo": "Bosque místico",
+      "escala": "bosque",
+      "color": null,
+      "descripcion": "Conectado a la ciudad."
+    },
+    {
+      "id": "luna",
+      "titulo": "Luna de Burdeo",
+      "escala": "luna",
+      "color": "blanco",
+      "descripcion": "El satélite de la ciudad."
+    },
+    {
+      "id": "otro-planeta",
+      "titulo": "Otro planeta",
+      "escala": "planeta",
+      "color": "celeste",
+      "descripcion": "Desde aquí se ve el mismo momento del cometa, pero desde fuera."
+    },
+    {
+      "id": "cometa",
+      "titulo": "El cometa",
+      "escala": "transversal",
+      "color": null,
+      "descripcion": "Algo espacial, fuera del espacio, pero visible para quienes están dentro de la ciudad. Atraviesa el mapa entero en vez de ocupar un lugar."
+    },
+    {
+      "id": "carretera",
+      "titulo": "Carretera",
+      "escala": "carretera",
+      "color": null,
+      "descripcion": "Mencionada en mapa-burdeo como escala del mapa.",
+      "_pendiente": "Sin canción asignada en el lore."
+    },
+    {
+      "id": "edificio",
+      "titulo": "Edificio",
+      "escala": "edificio",
+      "color": null,
+      "descripcion": "Mencionado en mapa-burdeo como escala del mapa.",
+      "_pendiente": "Sin canción asignada en el lore."
+    },
+    {
+      "id": "espacio",
+      "titulo": "Espacio",
+      "escala": "espacio",
+      "color": null,
+      "descripcion": "Mencionado en mapa-burdeo como escala del mapa.",
+      "_pendiente": "Sin canción asignada en el lore."
+    },
+    {
+      "id": "otros-mundos",
+      "titulo": "Otros mundos",
+      "escala": "mundo",
+      "color": null,
+      "descripcion": "Mencionados en mapa-burdeo como escala del mapa.",
+      "_pendiente": "Sin canción asignada en el lore."
+    }
+  ],
+
+  "canciones": [
+    {
+      "id": "volando-suave",
+      "titulo": "Volando suave",
+      "tipo": "tematica",
+      "zona": "cometa",
+      "ventana": "cometa",
+      "cuenta": "El cometa atraviesa Burdeo y hace que Burdeo se vea Burdeo."
+    },
+    {
+      "id": "desde-que-nos-vimos",
+      "titulo": "Desde que nos vimos",
+      "tipo": "tematica",
+      "zona": "otro-planeta",
+      "ventana": "cometa",
+      "relacion": "Comparte exactamente la ventana de Volando suave, vista desde otro planeta.",
+      "cuenta": "El mismo instante, desde fuera."
+    },
+    {
+      "id": "dime-tu",
+      "titulo": "Dime tú",
+      "tipo": "tematica",
+      "zona": "ciudad",
+      "ventana": "cometa",
+      "relacion": "Tiempo SIMILAR al de Volando suave, pero en momentos distintos: ve el reflejo del cometa en la ciudad, no el cometa mismo.",
+      "_pendiente": "Si 'similar pero distinto' debe ser una ventana propia solapada o un desfase dentro de la del cometa. El lore no lo precisa.",
+      "cuenta": "El reflejo, no el hecho."
+    },
+    {
+      "id": "dime-muchacha",
+      "titulo": "Dime muchacha",
+      "tipo": "tematica",
+      "zona": "luna",
+      "ventana": "luna",
+      "relacion": "Otro momento, distinto al de Volando suave.",
+      "cuenta": null
+    },
+    {
+      "id": "corazon-roto",
+      "titulo": "Corazón roto",
+      "tipo": "tematica",
+      "zona": "playa",
+      "ventana": null,
+      "_pendiente": "El lore la sitúa en el espacio (playa/costas) pero no en el tiempo.",
+      "cuenta": null
+    },
+    {
+      "id": "cuando-la-veo",
+      "titulo": "Cuando la veo",
+      "tipo": "tematica",
+      "zona": "ciudad-calle",
+      "ventana": null,
+      "relacion": "Un NPC más mundano: no contempla, habla.",
+      "_pendiente": "Sin ventana temporal declarada.",
+      "cuenta": null
+    },
+    {
+      "id": "no-puedo-olvidar",
+      "titulo": "No puedo olvidar (I–III)",
+      "tipo": "tematica",
+      "zona": "bosque",
+      "ventana": null,
+      "partes": 3,
+      "relacion": "Trilogía con progresión narrativa propia — su orden interno es suyo, no del bucle del mapa.",
+      "_pendiente": "Sin ventana temporal declarada. Decidir si las tres partes son tres puntos del mapa o uno con progresión.",
+      "cuenta": null
+    }
+  ],
+
+  "seriesInstrumentales": [
+    {
+      "id": "musica-para-hacer-nada",
+      "titulo": "Música para hacer nada",
+      "tipo": "instrumental",
+      "_fuente": "musica-para-hacer-nada.md",
+      "regla": "SIEMPRE presentes, sin importar qué otra canción esté sonando en el mapa. No dependen del bucle temporal — solo del lugar.",
+      "descripcion": "La forma de sobrevivir dentro de Burdeo. A la vez objeto, recuerdo y momento de libertad. No son personajes que hablan: son plantas, gnomos, estatuas dentro de la ciudad. Puntos de contemplación fijos.",
+      "encarnaciones": ["planta", "gnomo", "estatua"],
+      "temas": [],
+      "_pendiente": "El lore describe la serie pero no lista títulos concretos. Faltan los temas y en qué punto exacto de qué zona se para cada uno."
+    }
+  ]
+}
