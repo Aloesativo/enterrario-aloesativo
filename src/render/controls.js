@@ -12,11 +12,20 @@
  * se toca, ni siquiera un poco.
  */
 export function crearControles({ canvas, alMover, alRotar, alGesto }) {
+  // Los nombres 'arriba'/'abajo' de mundo/proyeccion.js describen el signo
+  // en el espacio de pantalla (A,B), no lo que el ojo ve. Con la cámara de
+  // este juego (azimut 45°, elevación 35.264°) esos dos ejes quedan
+  // invertidos en vertical: el paso que el código llama "arribaDerecha" se
+  // ve, en pantalla, abajo a la derecha — y así con los cuatro. Verificado
+  // por geometría de cámara, no a prueba y error: la base de pantalla de
+  // esta cámara tiene componente-Y negativa sobre el paso +x del mundo.
+  // Este mapeo compensa esa inversión SOLO aquí, en la traducción de
+  // entrada — mundo/ y camera.js no se tocan, su matemática ya es correcta.
   const DIRECCIONES = {
-    ArrowUp: 'arribaDerecha',
-    ArrowDown: 'abajoIzquierda',
-    ArrowLeft: 'arribaIzquierda',
-    ArrowRight: 'abajoDerecha',
+    ArrowUp: 'abajoDerecha',
+    ArrowDown: 'arribaIzquierda',
+    ArrowLeft: 'abajoIzquierda',
+    ArrowRight: 'arribaDerecha',
   };
 
   const UMBRAL_ARRASTRE = 26; // px mínimos para que un arrastre cuente
@@ -55,9 +64,9 @@ export function crearControles({ canvas, alMover, alRotar, alGesto }) {
     // signo — así cualquier arrastre cae siempre en una de las cuatro, sin
     // zonas muertas donde el gesto no haga nada.
     if (Math.abs(dx) > Math.abs(dy)) {
-      alMover(dx > 0 ? 'abajoDerecha' : 'arribaIzquierda');
+      alMover(dx > 0 ? 'arribaDerecha' : 'abajoIzquierda');
     } else {
-      alMover(dy > 0 ? 'abajoIzquierda' : 'arribaDerecha');
+      alMover(dy > 0 ? 'arribaIzquierda' : 'abajoDerecha');
     }
   }
 
@@ -103,8 +112,8 @@ export function crearControles({ canvas, alMover, alRotar, alGesto }) {
     // El stick da UN paso por empujón, no un chorro continuo: el juego se
     // piensa celda a celda y un movimiento continuo lo volvería resbaladizo.
     if (fuera && !estado.eje) {
-      if (Math.abs(x) > Math.abs(y)) alMover(x > 0 ? 'abajoDerecha' : 'arribaIzquierda');
-      else alMover(y > 0 ? 'abajoIzquierda' : 'arribaDerecha');
+      if (Math.abs(x) > Math.abs(y)) alMover(x > 0 ? 'arribaDerecha' : 'abajoIzquierda');
+      else alMover(y > 0 ? 'arribaIzquierda' : 'abajoDerecha');
     }
     estado.eje = fuera;
 
