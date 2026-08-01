@@ -82,7 +82,19 @@ export function crearDirectorCamara({ theme, planos, escena, alturaCentro = 1 })
     return objetoPersonaje.getWorldPosition(destino);
   }
 
+  /**
+   * A qué mira la cámara. Tres formas, no dos:
+   *  - 'centro'    → el origen del diorama (el comportamiento original)
+   *  - 'personaje' → posición viva del personaje
+   *  - [x, y, z]   → un punto fijo del mundo
+   *
+   * La tercera es la que habilita el recorrido por zonas: cada zona del
+   * guion tiene un lugar en el mapa, y "ir a la zona" es mirar ese punto.
+   * Sin esto el director solo sabía encuadrar UN objeto, que es justo la
+   * diferencia entre rodear un objeto y recorrer un mapa.
+   */
   function resolverObjetivo(nombre, destino) {
+    if (Array.isArray(nombre)) return destino.set(nombre[0], nombre[1], nombre[2]);
     return nombre === 'personaje'
       ? posicionDelPersonaje(destino)
       : destino.set(0, alturaCentro, 0);
@@ -102,6 +114,43 @@ export function crearDirectorCamara({ theme, planos, escena, alturaCentro = 1 })
     return encuadreEfectivo() / (2 * Math.tan((estado.fov * GRADOS) / 2));
   }
 
+  /**
+   * Motor de transición, compartido por los dos modos de navegación.
+   * Toma un encuadre de destino en grados y arma la interpolación.
+   *
+   * Se extrajo de irACelda cuando apareció el recorrido por zonas: ambos
+   * modos hacen exactamente lo mismo (interpolar hacia un encuadre), solo
+   * cambia de dónde sale el encuadre — de la grilla de planos o del mapa.
+   */
+  function transicionarA(encuadre, duracion) {
+    // Azimut por el camino más corto: sin esto, ir de 315° a 45° daría una
+    // vuelta larga de 270° en vez del giro de 90° que el usuario espera.
+    let deltaAzimut = encuadre.azimutGrados * GRADOS - estado.azimut;
+    while (deltaAzimut > Math.PI) deltaAzimut -= Math.PI * 2;
+    while (deltaAzimut < -Math.PI) deltaAzimut += Math.PI * 2;
+
+    transicion.desde = { ...estado };
+    transicion.hasta = {
+      azimut: estado.azimut + deltaAzimut,
+      elevacion: encuadre.elevacionGrados * GRADOS,
+      encuadre: encuadre.encuadre,
+      fov: encuadre.fov,
+      roll: encuadre.roll * GRADOS,
+    };
+
+    nombreObjetivoOrigen = nombreObjetivoDestino;
+    nombreObjetivoDestino = encuadre.objetivo;
+    resolverObjetivo(nombreObjetivoOrigen, objetivoOrigen);
+
+    volteoOrigen.copy(rigMundo ? rigMundo.quaternion : new THREE.Quaternion());
+    const [vx, vy, vz] = encuadre.volteo ?? [0, 0, 0];
+    volteoDestino.setFromEuler(new THREE.Euler(vx * GRADOS, vy * GRADOS, vz * GRADOS));
+
+    transicion.activa = true;
+    transicion.inicio = performance.now();
+    transicion.duracion = duracion;
+  }
+
   function irACelda(nuevoAzimutIndice, nuevoElevacionIndice, duracion = 620) {
     const pasos = grilla.azimutPasos;
     azimutIndice = ((nuevoAzimutIndice % pasos) + pasos) % pasos;
@@ -113,35 +162,53 @@ export function crearDirectorCamara({ theme, planos, escena, alturaCentro = 1 })
     planoActual = buscarPlano(azimutIndice, elevacionIndice);
     const encuadre = encuadreDe(planoActual);
 
-    // Azimut por el camino más corto: sin esto, ir de 315° a 45° daría una
-    // vuelta larga de 270° en vez del giro de 90° que el usuario espera.
-    const azimutDestinoCrudo = (360 / pasos) * azimutIndice * GRADOS;
-    let deltaAzimut = azimutDestinoCrudo - estado.azimut;
-    while (deltaAzimut > Math.PI) deltaAzimut -= Math.PI * 2;
-    while (deltaAzimut < -Math.PI) deltaAzimut += Math.PI * 2;
-
-    transicion.desde = { ...estado };
-    transicion.hasta = {
-      azimut: estado.azimut + deltaAzimut,
-      elevacion: grilla.elevaciones[elevacionIndice] * GRADOS,
-      encuadre: encuadre.encuadre,
-      fov: encuadre.fov,
-      roll: encuadre.roll * GRADOS,
-    };
-
-    nombreObjetivoOrigen = nombreObjetivoDestino;
-    nombreObjetivoDestino = encuadre.objetivo;
-    resolverObjetivo(nombreObjetivoOrigen, objetivoOrigen);
-
-    volteoOrigen.copy(rigMundo ? rigMundo.quaternion : new THREE.Quaternion());
-    const [vx, vy, vz] = encuadre.volteo;
-    volteoDestino.setFromEuler(new THREE.Euler(vx * GRADOS, vy * GRADOS, vz * GRADOS));
-
-    transicion.activa = true;
-    transicion.inicio = performance.now();
-    transicion.duracion = duracion;
+    transicionarA(
+      {
+        ...encuadre,
+        azimutGrados: (360 / pasos) * azimutIndice,
+        elevacionGrados: grilla.elevaciones[elevacionIndice],
+      },
+      duracion
+    );
 
     return { plano: planoActual, encuadre };
+  }
+
+  /**
+   * Recorrido por zonas: el verbo primario que pide el lore ("vista desde
+   * arriba, desplazamiento sin rotar, zoom a zonas específicas").
+   *
+   * No reemplaza a la grilla de planos, la usa: ir a una zona ES un cambio
+   * de plano, solo que el encuadre sale del mapa en vez de la grilla y el
+   * objetivo es un punto del mundo en vez del centro o el personaje. Por
+   * eso las transiciones siguen siendo cinematográficas y no un paneo
+   * crudo — que era lo que había que conservar de la versión anterior.
+   *
+   * Duración más larga que un paso de grilla a propósito: cruzar el mapa
+   * de la ciudad a la luna es un viaje, no un ajuste de encuadre.
+   */
+  function irAZona(zona, duracion = 1100) {
+    if (!zona) return null;
+
+    // El azimut se conserva salvo que la zona pida uno propio: así el
+    // desplazamiento entre zonas NO rota el mundo, que es exactamente lo
+    // que el lore pide. Rotar queda como gesto secundario y explícito.
+    const azimutGrados =
+      zona.azimut ?? (estado.azimut / GRADOS);
+
+    planoActual = null;
+    transicionarA(
+      {
+        ...encuadreGenerico,
+        ...zona,
+        objetivo: zona.objetivo ?? [0, alturaCentro, 0],
+        azimutGrados,
+        elevacionGrados: zona.elevacion ?? grilla.elevaciones[elevacionIndice],
+      },
+      duracion
+    );
+
+    return { zona };
   }
 
   /** Paso regular: A/D mueven el azimut, W/S la elevación. */
@@ -259,6 +326,7 @@ export function crearDirectorCamara({ theme, planos, escena, alturaCentro = 1 })
     ajustarAspecto,
     paso,
     irACelda,
+    irAZona,
     volverAlPlanoBase,
     orbitarLibre,
     inclinarLibre,

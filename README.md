@@ -44,6 +44,8 @@ Basta con abrirla en cualquier navegador. Parámetros de prueba en la URL:
 - `?tamano=20` — tamaño de la grilla (default 12x12).
 - `?postproceso=off` — apaga la cadena de postproceso, para comparar el
   antes/después del tilt-shift sin editar nada.
+- `?velocidad=8` — acelera el bucle temporal, para no esperar dos minutos
+  a que se abra una ventana.
 - `?modelo=archivo.glb` — carga un diorama autorado en vez del procedural.
   El archivo tiene que estar en `public/`. Si falla, se ve el greybox.
 
@@ -77,6 +79,51 @@ render genérico — compáralo con `?postproceso=off`.
 
 Todos los valores viven en `src/theme/default.json` como placeholders
 marcados. El mecanismo está; el look lo define RR.
+
+## Cómo se recorre
+
+El verbo primario es **viajar entre zonas del mapa**, como pide el lore
+(*"vista desde arriba, desplazamiento sin rotar, zoom a zonas
+específicas"*). Orbitar sigue disponible, pero como gesto secundario.
+
+| Entrada | Efecto |
+|---|---|
+| `←` `→`, toque en el borde lateral, bumpers | Zona anterior / siguiente |
+| `A` `D` `W` `S`, arrastre, stick | Órbita y elevación (secundario) |
+| `↑` `↓` | Mueven al personaje dentro de la zona |
+| `espacio` | Pausa el reloj del bucle |
+| `R`, botón A | Vuelve a la zona inicial |
+
+Se descartó el swipe horizontal para cambiar de zona: un arrastre rápido
+de lado a lado es exactamente lo que hace alguien orbitando, así que los
+dos gestos competirían. Un toque sin desplazamiento en el borde es
+inequívoco.
+
+Desde la consola del navegador (única herramienta de inspección
+disponible, dado que no hay flujo local):
+
+```js
+enterrario.situar(90)      // salta al segundo 90 del bucle
+enterrario.zona('luna')    // viaja a una zona por id
+enterrario.queSuena()      // qué sonaría aquí y ahora, y por qué
+```
+
+## Qué suena y cuándo
+
+La regla del lore: **la canción depende de dónde miras y de cuándo**. Si
+llegas al lugar correcto en el momento equivocado, no suena — porque en
+ese momento está pasando otra cosa en otra parte.
+
+Hay dos capas:
+
+- **Instrumentales** (*"música para hacer nada"*) — suenan siempre que
+  estés en su zona, sin importar el bucle. Plantas, gnomos, estatuas:
+  puntos de contemplación fijos.
+- **Temáticas** — solo dentro de su ventana temporal.
+
+Mientras no haya audio, **el HUD es la demostración**: dice qué suena, o
+por qué no. Distingue "aquí hay canción pero no es su momento" de "aquí
+falta lore todavía", para que el trabajo pendiente se vea.
 
 ## El camino hacia el diorama autorado
 

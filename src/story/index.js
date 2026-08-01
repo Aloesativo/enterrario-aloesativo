@@ -20,6 +20,12 @@ export const MOTIVO = {
   FUERA_DE_VENTANA: 'fuera-de-ventana',
   BUCLE_SIN_DEFINIR: 'bucle-sin-definir',
   ZONA_SIN_CANCIONES: 'zona-sin-canciones',
+  // Distinto de FUERA_DE_VENTANA a propósito: "aquí hay una canción pero
+  // el lore todavía no dice cuándo suena" no es lo mismo que "aquí hay una
+  // canción y ahora no es el momento". Separarlos deja el trabajo
+  // pendiente visible en el propio prototipo en vez de esconderlo como
+  // silencio.
+  SIN_VENTANA: 'sin-ventana-asignada',
 };
 
 export function cargarGuion(datos) {
@@ -91,11 +97,17 @@ export function cargarGuion(datos) {
     const activas = new Set(ventanasActivas(segundos).map((v) => v.id));
     const tematicas = candidatas.filter((c) => c.ventana && activas.has(c.ventana));
 
-    return {
-      instrumentales,
-      tematicas,
-      motivo: tematicas.length > 0 ? MOTIVO.SUENA : MOTIVO.FUERA_DE_VENTANA,
-    };
+    if (tematicas.length > 0) {
+      return { instrumentales, tematicas, motivo: MOTIVO.SUENA };
+    }
+
+    // Si NINGUNA de las candidatas tiene ventana, el silencio no es la
+    // mecánica funcionando: es lore que falta. Se dice explícitamente.
+    const motivo = candidatas.every((c) => !c.ventana)
+      ? MOTIVO.SIN_VENTANA
+      : MOTIVO.FUERA_DE_VENTANA;
+
+    return { instrumentales, tematicas: [], motivo, candidatas };
   }
 
   return {
