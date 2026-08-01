@@ -1,0 +1,39 @@
+{
+  "nombre": "primer-hallazgo",
+  "descripcion": "La rebanada mínima del artefacto completo: un muro, una alineación, una revelación. Un lugar al que no se llega, giras, se alinea, llegas — y ahí la cámara se suelta. Si este momento se siente bien, el resto es repetirlo. VERIFICADO: el puente existe SOLO en la rotación 0; desde la rotación inicial (2) la isla del hallazgo es inalcanzable.",
+
+  "centro": { "x": 5, "z": 5 },
+  "rotacionInicial": 2,
+  "partida": { "x": 1, "y": 0, "z": 1 },
+
+  "_nota_areas": "Se declaran rectángulos y no celdas sueltas para poder mover una isla entera cambiando un número. Al tocar cualquiera de estos valores hay que volver a correr la validación: la alineación es exacta y se rompe con un desplazamiento de una sola celda.",
+  "areas": [
+    {
+      "id": "orilla",
+      "nombre": "La orilla",
+      "x0": 0, "x1": 3, "z0": 0, "z1": 3, "y": 0,
+      "color": "burdeo"
+    },
+    {
+      "id": "hallazgo",
+      "nombre": "El mirador",
+      "x0": 6, "x1": 9, "z0": 6, "z1": 9, "y": 5,
+      "color": "celeste"
+    }
+  ],
+
+  "revelaciones": [
+    {
+      "id": "primera",
+      "celda": { "x": 9, "y": 5, "z": 9 },
+      "plano": "vertigo",
+      "_nota": "El punto de vista es el premio, no el lugar. Se pone en la esquina más lejana de la isla para que llegar hasta ahí sea una decisión y no un accidente.",
+      "obra": {
+        "titulo": "Volando suave",
+        "lore": "Un cometa que atraviesa Burdeo y hace que Burdeo se vea Burdeo.",
+        "color": "celeste",
+        "_pendiente": "PLACEHOLDER: la portada real y el archivo .opus los pone RR. Hoy se dibuja una portada generada y suena un acorde sintetizado, solo para que el latido del hallazgo se pueda sentir."
+      }
+    }
+  ]
+}

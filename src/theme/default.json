@@ -1,6 +1,6 @@
 {
   "nombre": "greybox",
-  "descripcion": "Tema placeholder sin identidad visual. Solo sirve para validar la generación procedural y la cadena de iluminación. Reemplazar cuando exista una identidad definida (ver README, sección 'Identidad visual').",
+  "descripcion": "Tema placeholder sin identidad visual. Valida la cadena de iluminación y la legibilidad del acertijo. Reemplazar cuando exista una identidad definida (ver README).",
   "fondo": "#1a1a1a",
   "niebla": {
     "_nota": "cerca/lejos dejaron de ser distancias absolutas: ahora son factores multiplicados por la distancia real de la cámara, que cambia con cada plano. Un factorLejos menor a ~1.5 hace desaparecer el diorama (ver lección del bug de niebla en CLAUDE.md).",
@@ -13,7 +13,11 @@
     "ambiental": "#404040",
     "direccional": "#ffffff",
     "intensidadDireccional": 1.2,
-    "posicion": [10, 20, 10]
+    "posicion": [
+      10,
+      20,
+      10
+    ]
   },
   "entorno": {
     "_nota": "iluminación basada en imagen. Hoy usa un entorno procedural (RoomEnvironment de Three.js) para no meter binarios al repo. Cuando RR elija un ambiente real, se pone un .hdr en public/ y se amplía este bloque — la ELECCIÓN de ambiente es identidad visual, el mecanismo vive en render/entorno.js.",
@@ -34,9 +38,10 @@
     "_nota": "VALORES PLACEHOLDER, propuestos solo para que se vea el mecanismo funcionando. El look real lo define RR. Cualquier bloque puesto en null apaga ese efecto; 'activo': false apaga la cadena entera para comparar antes/después.",
     "activo": true,
     "tiltShift": {
-      "_nota": "el efecto miniatura. franjaNitida = qué proporción de la pantalla queda enfocada; difuminado = cuán suave es la transición al desenfoque.",
-      "franjaNitida": 0.38,
-      "difuminado": 0.32,
+      "_nota": "VERIFICADO 2026-08-01: con una franja nítida estrecha el efecto miniatura desenfoca las alineaciones que el jugador tiene que leer, y el juego se vuelve ilegible. Por eso hay DOS valores: uno ancho para el régimen mecánico (jugar) y uno estrecho para el de revelación (descubrir). El efecto no se sacrifica, se ata a la ruptura de regla. Bajar franjaNitidaMecanica por debajo de ~0.7 rompe la jugabilidad.",
+      "franjaNitidaMecanica": 0.88,
+      "franjaNitidaRevelacion": 0.32,
+      "difuminado": 0.34,
       "desplazamiento": 0,
       "rotacion": 0,
       "sesgo": 0.06,
@@ -56,26 +61,17 @@
       "opacidad": 0.1
     }
   },
-  "modelo": {
-    "_nota": "diorama autorado en Blender. Mientras 'archivo' sea null se usa el greybox procedural. Se puede probar un .glb sin tocar el theme con ?modelo=nombre.glb en la URL (el archivo debe estar en public/).",
-    "archivo": null,
-    "ajusteAutomatico": true,
-    "tamanoObjetivo": 12
-  },
   "paleta": {
-    "agua": "#3a5a6a",
-    "sueloPorAltura": ["#555555", "#666666", "#777777", "#888888"],
-    "prop": "#cc4444",
     "personaje": "#4d8fcc",
-
-    "_nota_nombresDeColor": "El lore nombra colores por tema (burdeo/morado, celeste, blanco) pero no da valores. src/story/ guarda solo el NOMBRE; esta tabla es quien decide el valor, y por eso vive en theme/. VALORES PLACEHOLDER: los definitivos salen de las portadas, que ya están hechas — los elige RR, no el agente. AVISO VERIFICADO: 'blanco' a #d8d8d8 supera el umbral de bloom (postproceso.bloom.umbral = 0.85) y la luna se quema hasta volverse ilegible. Se arregla bajando este valor o subiendo el umbral — las dos son decisiones de identidad, así que quedan sin tocar.",
+    "_nota_nombresDeColor": "El lore nombra colores por tema (burdeo/morado, celeste, blanco) pero no da valores. mundo/nivel.json guarda solo el NOMBRE; esta tabla decide el valor, y por eso vive en theme/. VALORES PLACEHOLDER: los definitivos salen de las portadas, que ya están hechas — los elige RR. AVISO: un color por encima de ~#d0d0d0 supera el umbral de bloom (postproceso.bloom.umbral) y se quema hasta volverse ilegible.",
     "nombresDeColor": {
       "burdeo": "#6b2737",
       "celeste": "#7fb2d9",
       "blanco": "#d8d8d8"
     },
     "zonaSinColor": "#5a5a5a",
-    "marcadorZona": "#e0c060"
+    "baliza": "#e0c060",
+    "_nota_baliza": "Marca las revelaciones antes de descubrirlas. PLACEHOLDER."
   },
   "materialStyle": "flat"
 }
