@@ -1,180 +1,47 @@
 {
   "nombre": "greybox-cinematografico",
-  "descripcion": "Estructura de composición de cámara: la grilla de encuadres y el shot list. Los NÚMEROS de aquí son placeholders — definen dónde se para la cámara y qué cuenta cada plano, que es una decisión de dirección/identidad visual y le corresponde a RR, no al agente. Lo que el agente propone es la ESTRUCTURA del archivo (ver README, sección 'Identidad visual').",
-
-  "grilla": {
-    "descripcion": "Los pasos regulares. A/D avanzan por 'azimutPasos' (giro alrededor); W/S suben y bajan por 'elevaciones'. Cada combinación de ambos índices es una celda; las celdas que aparecen en 'planos' tienen encuadre curado, el resto usa 'encuadreGenerico'.",
-    "azimutPasos": 8,
-    "azimutInicial": 1,
-    "elevaciones": [6, 20, 35.264, 55, 80],
-    "elevacionInicial": 2
+  "descripcion": "Composición de cámara. Los NÚMEROS son placeholders: dónde se para la cámara y qué cuenta cada plano es dirección, o sea identidad visual, y le corresponde a RR. El agente propone la ESTRUCTURA (ver README, sección 'Identidad visual').",
+  "mecanica": {
+    "descripcion": "La cámara del juego. Isométrica verdadera: elevación 35.264° = atan(1/√2), que es lo que hace que las tres caras de un cubo midan igual y que la ambigüedad de profundidad funcione. Fov muy bajo ≈ proyección ortográfica. NO SE MUEVE NUNCA. Su rigidez es la condición de que el acertijo sea legible: si la cámara se moviera sola, las alineaciones cambiarían sin que el jugador lo pidiera. Cambiar la elevación aquí ROMPE la alineación de los puentes — la matemática de mundo/proyeccion.js asume exactamente este ángulo.",
+    "azimut": 45,
+    "elevacion": 35.264,
+    "fov": 11,
+    "_nota_margen": "El encuadre NO es un número fijo: se calcula de la esfera envolvente del nivel, y este margen es el aire que se le deja alrededor. Antes era fijo (26) y la isla del hallazgo quedaba fuera de cuadro — y un nivel donde no ves la isla a la que tienes que llegar no es un acertijo difícil, es un acertijo roto. Se usa la esfera envolvente y no la caja porque es invariante a la rotación: así el encuadre no cambia al girar el mundo.",
+    "margen": 1.22
   },
-
-  "mapa": {
-    "descripcion": "Dónde se para cada zona del guion y cómo se encuadra. Es la traducción espacial de src/story/burdeo.json: el guion dice QUÉ zonas existen y qué suena en cada una; esto dice DÓNDE están y cómo se miran. Vive en theme/ por la misma razón que el shot list — la composición es identidad visual. TODOS LOS NÚMEROS SON PLACEHOLDERS: la disposición del mapa (qué está cerca de qué, a qué escala) es diseño de RR.",
-    "zonaInicial": "ciudad",
-    "_pendiente": "El lore dice que el mapa conecta múltiples escalas dentro de una misma temporalidad (playa, ciudad, carretera, edificio, luna, espacio, planeta, cometa, otros mundos). Esta disposición es una propuesta de estructura para que el recorrido funcione, no una decisión de diseño.",
-
-    "zonas": {
-      "ciudad": {
-        "objetivo": [0, 1, 0],
-        "tamano": 12,
-        "encuadre": 20,
-        "fov": 12,
-        "elevacion": 35.264
-      },
-      "ciudad-calle": {
-        "objetivo": [0, 0.6, 0],
-        "tamano": 4,
-        "encuadre": 7,
-        "fov": 38,
-        "elevacion": 6
-      },
-      "edificio": {
-        "objetivo": [3, 3, -2],
-        "tamano": 3,
-        "encuadre": 9,
-        "fov": 28,
-        "elevacion": 20
-      },
-      "playa": {
-        "objetivo": [-22, 0.4, 8],
-        "tamano": 10,
-        "encuadre": 16,
-        "fov": 14,
-        "elevacion": 20
-      },
-      "bosque": {
-        "objetivo": [16, 0.8, 14],
-        "tamano": 9,
-        "encuadre": 15,
-        "fov": 16,
-        "elevacion": 20
-      },
-      "carretera": {
-        "objetivo": [-6, 0.3, 20],
-        "tamano": 14,
-        "encuadre": 18,
-        "fov": 12,
-        "elevacion": 35.264
-      },
-      "luna": {
-        "objetivo": [10, 26, -14],
-        "tamano": 6,
-        "encuadre": 11,
-        "fov": 16,
-        "elevacion": 20
-      },
-      "cometa": {
-        "objetivo": [-14, 34, 10],
-        "tamano": 2,
-        "encuadre": 22,
-        "fov": 30,
-        "elevacion": 6
-      },
-      "espacio": {
-        "objetivo": [0, 52, 0],
-        "tamano": 30,
-        "encuadre": 60,
-        "fov": 20,
-        "elevacion": 55
-      },
-      "otro-planeta": {
-        "objetivo": [46, 40, -34],
-        "tamano": 8,
-        "encuadre": 14,
-        "fov": 18,
-        "elevacion": 20
-      },
-      "otros-mundos": {
-        "objetivo": [-52, 46, -40],
-        "tamano": 7,
-        "encuadre": 20,
-        "fov": 22,
-        "elevacion": 20
-      }
-    }
-  },
-
-  "encuadreGenerico": {
-    "descripcion": "Framing por defecto de cualquier celda sin plano curado. Mantiene el look isométrico: fov muy bajo ≈ proyección ortográfica.",
-    "encuadre": 20,
-    "fov": 12,
-    "roll": 0,
-    "objetivo": "centro",
-    "volteo": [0, 0, 0]
-  },
-
-  "planos": [
-    {
-      "nombre": "isométrico base",
-      "cuenta": "El terrario como objeto observado. El punto de reposo: nada pasa, todo se ve.",
-      "celda": [1, 2],
-      "encuadre": 20,
-      "fov": 12,
-      "roll": 0,
-      "objetivo": "centro",
-      "volteo": [0, 0, 0]
+  "planosRevelacion": {
+    "_descripcion": "La biblioteca de tomas del hallazgo. Estas SÍ se mueven, se inclinan y abren perspectiva — son la ruptura de la regla. Cada revelación del nivel elige una por nombre. Antes estos planos estaban indexados por celda de una grilla de cámara y se visitaban con el teclado, que era el error: un plano al que llegas apretando una tecla no cuenta nada. Ahora se disparan solos al descubrir.",
+    "vertigo": {
+      "cuenta": "La perspectiva se abre de golpe manteniendo el sujeto: dolly zoom. El mundo se vuelve grande y el hallazgo pequeño.",
+      "azimut": 20,
+      "elevacion": 14,
+      "encuadre": 7,
+      "fov": 52,
+      "roll": 0
     },
-    {
-      "nombre": "cenital de mapa",
-      "cuenta": "Lectura fría del territorio: dónde estás, qué hay. Aplasta la profundidad a propósito.",
-      "celda": [1, 4],
-      "encuadre": 22,
-      "fov": 8,
-      "roll": 0,
-      "objetivo": "centro",
-      "volteo": [0, 0, 0]
+    "holandes": {
+      "cuenta": "Horizonte torcido: algo no está del todo bien. Tensión sin cambiar de lugar.",
+      "azimut": 70,
+      "elevacion": 22,
+      "encuadre": 8,
+      "fov": 34,
+      "roll": -11
     },
-    {
-      "nombre": "rasante dramático",
-      "cuenta": "A ras de suelo, con fuga real. El mundo se vuelve grande y el personaje pequeño.",
-      "celda": [5, 0],
-      "encuadre": 11,
-      "fov": 42,
-      "roll": 0,
-      "objetivo": "personaje",
-      "volteo": [0, 0, 0]
-    },
-    {
-      "nombre": "tres cuartos cerrado",
-      "cuenta": "Plano de acompañamiento: la cámara se acerca y el personaje manda.",
-      "celda": [3, 1],
-      "encuadre": 9,
+    "retrato": {
+      "cuenta": "Cerrado y frontal, casi a la altura del hallazgo. El objeto manda y el paisaje desaparece.",
+      "azimut": 45,
+      "elevacion": 8,
+      "encuadre": 5,
       "fov": 30,
-      "roll": 0,
-      "objetivo": "personaje",
-      "volteo": [0, 0, 0]
+      "roll": 0
     },
-    {
-      "nombre": "ángulo holandés",
-      "cuenta": "Horizonte torcido: algo no está bien. Tensión sin cambiar de lugar.",
-      "celda": [7, 1],
-      "encuadre": 14,
-      "fov": 26,
-      "roll": -12,
-      "objetivo": "personaje",
-      "volteo": [0, 0, 0]
-    },
-    {
-      "nombre": "volteo del terrario",
-      "cuenta": "El momento rubik: ya no es la cámara la que se mueve, es el mundo el que se da vuelta.",
-      "celda": [5, 3],
-      "encuadre": 24,
-      "fov": 18,
-      "roll": 0,
-      "objetivo": "centro",
-      "volteo": [0, 0, 180]
-    },
-    {
-      "nombre": "vértigo",
-      "cuenta": "Mismo encuadre del personaje, pero la perspectiva se abre de golpe: dolly zoom.",
-      "celda": [3, 3],
-      "encuadre": 9,
-      "fov": 55,
-      "roll": 0,
-      "objetivo": "personaje",
-      "volteo": [0, 0, 0]
+    "cenital": {
+      "cuenta": "Lectura fría desde arriba: dónde estás, qué encontraste. Aplasta la profundidad a propósito.",
+      "azimut": 45,
+      "elevacion": 78,
+      "encuadre": 12,
+      "fov": 16,
+      "roll": 0
     }
-  ]
+  }
 }

@@ -39,20 +39,20 @@ export function crearPostproceso({ renderer, scene, camera, theme }) {
   composer.addPass(new RenderPass(scene, camera));
 
   const efectos = [];
+  let tiltShift = null;
 
   if (config.tiltShift) {
     const t = config.tiltShift;
-    efectos.push(
-      new TiltShiftEffect({
-        offset: t.desplazamiento ?? 0,
-        rotation: (t.rotacion ?? 0) * (Math.PI / 180),
-        focusArea: t.franjaNitida ?? 0.4,
-        feather: t.difuminado ?? 0.3,
-        bias: t.sesgo ?? 0.06,
-        kernelSize: t.calidad ?? 2,
-        resolutionScale: t.escalaResolucion ?? 0.5,
-      })
-    );
+    tiltShift = new TiltShiftEffect({
+      offset: t.desplazamiento ?? 0,
+      rotation: (t.rotacion ?? 0) * (Math.PI / 180),
+      focusArea: t.franjaNitidaMecanica ?? 0.85,
+      feather: t.difuminado ?? 0.3,
+      bias: t.sesgo ?? 0.06,
+      kernelSize: t.calidad ?? 2,
+      resolutionScale: t.escalaResolucion ?? 0.5,
+    });
+    efectos.push(tiltShift);
   }
 
   if (config.bloom) {
@@ -98,9 +98,38 @@ export function crearPostproceso({ renderer, scene, camera, theme }) {
 
   composer.addPass(new EffectPass(camera, ...efectos));
 
+  const franjaMecanica = config.tiltShift?.franjaNitidaMecanica ?? 0.85;
+  const franjaRevelacion = config.tiltShift?.franjaNitidaRevelacion ?? 0.34;
+
   return {
     render: () => composer.render(),
     ajustarTamano: (ancho, alto) => composer.setSize(ancho, alto),
     liberar: () => composer.dispose(),
+
+    /**
+     * El tilt-shift cambia de fuerza según el régimen de cámara, y esa es
+     * la parte interesante.
+     *
+     * Con la franja nítida estrecha, el efecto miniatura desenfoca justo
+     * las alineaciones que el jugador tiene que leer — o sea que el efecto
+     * más bonito del artefacto hacía el juego ilegible. Verificado por
+     * captura: la isla del hallazgo salía como una mancha.
+     *
+     * En vez de sacrificar el efecto, se ata a los dos regímenes: mientras
+     * juegas la imagen es clara y funcional; al descubrir se cierra la
+     * franja y la escena se convierte en la fotografía de una miniatura.
+     * El lenguaje visual acompaña la ruptura de la regla en vez de pelearse
+     * con ella.
+     *
+     * @param {number} mezcla 0 = juego (nítido), 1 = revelación (miniatura)
+     */
+    ajustarRegimen(mezcla) {
+      if (!tiltShift) return;
+      const valor = franjaMecanica + (franjaRevelacion - franjaMecanica) * mezcla;
+      // La propiedad existe en pmndrs/postprocessing; se comprueba porque
+      // un cambio de versión que la renombre debe degradar a "sin efecto
+      // dinámico", nunca a una excepción por frame.
+      if ('focusArea' in tiltShift) tiltShift.focusArea = valor;
+    },
   };
 }

@@ -1,133 +1,107 @@
 import * as THREE from 'three';
-import { TAMANO_CELDA, ALTO_BLOQUE } from './tiles.js';
+import { TAM, ALTO, posicionDeCelda } from './nivel.js';
 
-const ALTO_PERSONAJE = TAMANO_CELDA * 0.55;
+const LADO = TAM * 0.42;
 
 /**
- * El personaje: por ahora un cubo simple. Vive dentro del mismo `rig` que
- * el diorama, así que se mueve en el espacio local de la grilla — la
- * rotación cinematográfica del escenario (ver controls.js) no interfiere
- * con hacia dónde "cree" el personaje que se está moviendo.
+ * El personaje. Es la agencia del jugador: todo lo demás está a su
+ * servicio. En la versión anterior había quedado degradado a marcador de
+ * presencia mientras el gesto principal viajaba entre zonas — ese fue el
+ * error que rompió el artefacto. Aquí vuelve al centro.
  */
 export function construirPersonaje({ theme }) {
-  const geometria = new THREE.BoxGeometry(ALTO_PERSONAJE, ALTO_PERSONAJE, ALTO_PERSONAJE);
+  const geometria = new THREE.BoxGeometry(LADO, LADO * 1.4, LADO);
   const material = new THREE.MeshStandardMaterial({ color: theme.paleta.personaje });
-  const mesh = new THREE.Mesh(geometria, material);
-  // El personaje sí proyecta sombra: es el objeto cuya posición el ojo
-  // necesita leer con precisión, y la sombra es lo que dice a qué altura
-  // del terreno está parado.
-  mesh.castShadow = theme.sombras?.activas !== false;
-  return mesh;
-}
-
-/** Elige una celda de partida cerca del centro que no sea agua. */
-export function encontrarCeldaInicial(diorama) {
-  const centro = Math.floor(diorama.tamano / 2);
-  let mejor = null;
-  let mejorDistancia = Infinity;
-  for (const celda of diorama.celdas) {
-    if (celda.tipo === 'agua') continue;
-    const distancia = Math.abs(celda.x - centro) + Math.abs(celda.z - centro);
-    if (distancia < mejorDistancia) {
-      mejorDistancia = distancia;
-      mejor = celda;
-    }
-  }
-  return mejor ?? diorama.celdas[0];
+  const malla = new THREE.Mesh(geometria, material);
+  malla.castShadow = theme.sombras?.activas !== false;
+  return malla;
 }
 
 /**
- * Mueve al personaje por la grilla del diorama con las flechas: una celda
- * a la vez, con animación corta y bloqueo en bordes/agua (choque = vibra
- * distinto y no avanza — el toque "RPG" de que el mundo tiene reglas).
+ * Movimiento por celdas. La animación del paso es corta (160ms) porque
+ * este juego se piensa con los ojos, no con los dedos: una animación larga
+ * castigaría probar alineaciones, que es exactamente lo que queremos que
+ * el jugador haga sin miedo.
+ *
+ * El paso a un "puente imposible" dura más y vibra distinto. Es la única
+ * pista que da el sistema de que acaba de pasar algo que no era obvio —
+ * sin ella, cruzar un abismo se siente igual que caminar, y el hallazgo
+ * pierde su peso.
  */
-export function crearControladorPersonaje({ mesh, diorama, celdaInicial, director }) {
+export function crearControladorPersonaje({ malla, nivel, theme }) {
   const DURACION_PASO = 160;
-  const centrado = -(diorama.tamano * TAMANO_CELDA) / 2;
-  const celdasPorCoordenada = new Map(
-    diorama.celdas.map((celda) => [`${celda.x},${celda.z}`, celda])
-  );
+  const DURACION_PUENTE = 420;
 
-  let celdaActual = celdaInicial;
-  const origenPos = new THREE.Vector3();
-  const destinoPos = new THREE.Vector3();
-  let inicioMovimiento = 0;
-  let moviendo = false;
+  let celda = { ...nivel.partida };
+  let rotacion = nivel.rotacionInicial;
+  let animacion = null;
 
-  function posicionDeCelda(celda) {
-    const y = (celda.altura || 0.3) * ALTO_BLOQUE + ALTO_BLOQUE / 2 + ALTO_PERSONAJE / 2;
-    return new THREE.Vector3(
-      centrado + celda.x * TAMANO_CELDA,
-      y,
-      centrado + celda.z * TAMANO_CELDA
-    );
+  const desde = new THREE.Vector3();
+  const hasta = new THREE.Vector3();
+
+  function alturaSobreCelda(c) {
+    const p = posicionDeCelda(c);
+    p.y += (LADO * 1.4) / 2;
+    return p;
   }
 
-  mesh.position.copy(posicionDeCelda(celdaActual));
+  malla.position.copy(alturaSobreCelda(celda));
 
   function vibrar(patron) {
     if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(patron);
   }
 
-  function intentarMover(dx, dz) {
-    if (moviendo) return;
-    const destino = celdasPorCoordenada.get(`${celdaActual.x + dx},${celdaActual.z + dz}`);
-    if (!destino || destino.tipo === 'agua') {
-      vibrar(8); // choque: fuera de la grilla o contra el agua
-      return;
+  /** @returns {{movido:boolean, puenteImposible?:boolean, celda?:object}} */
+  function mover(direccion) {
+    if (animacion) return { movido: false, motivo: 'en-movimiento' };
+
+    const paso = nivel.navegacion.intentarPaso(celda, direccion, rotacion);
+    if (!paso.permitido) {
+      vibrar(8);
+      return { movido: false, motivo: paso.motivo };
     }
-    celdaActual = destino;
-    origenPos.copy(mesh.position);
-    destinoPos.copy(posicionDeCelda(destino));
-    inicioMovimiento = performance.now();
-    moviendo = true;
-    vibrar(10);
+
+    desde.copy(malla.position);
+    hasta.copy(alturaSobreCelda(paso.celda));
+    celda = paso.celda;
+
+    animacion = {
+      inicio: performance.now(),
+      duracion: paso.puenteImposible ? DURACION_PUENTE : DURACION_PASO,
+      puente: paso.puenteImposible,
+    };
+
+    vibrar(paso.puenteImposible ? [18, 40, 18, 40, 30] : 10);
+    return { movido: true, puenteImposible: paso.puenteImposible, celda };
   }
 
-  /**
-   * Las flechas son relativas a la PANTALLA, no a la grilla: "arriba" es
-   * siempre hacia el fondo de lo que se ve, sin importar en qué plano esté
-   * la cámara. Sin esto, después de girar el encuadre la flecha de arriba
-   * movería al personaje en diagonal respecto de lo que el ojo espera —
-   * justo el tipo de fricción de controles que el prototipo quiere evitar.
-   */
-  function moverEnPantalla(haciaAdelante, haciaDerecha) {
-    const { adelante, derecha } = director.ejesPantallaEnGrilla();
-    const dx = adelante.dx * haciaAdelante + derecha.dx * haciaDerecha;
-    const dz = adelante.dz * haciaAdelante + derecha.dz * haciaDerecha;
-    intentarMover(dx, dz);
+  function fijarRotacion(nueva) {
+    rotacion = ((nueva % 4) + 4) % 4;
+    return rotacion;
   }
-
-  function alTeclaPresionada(evento) {
-    switch (evento.key) {
-      case 'ArrowUp':
-        moverEnPantalla(1, 0);
-        break;
-      case 'ArrowDown':
-        moverEnPantalla(-1, 0);
-        break;
-      case 'ArrowLeft':
-        moverEnPantalla(0, -1);
-        break;
-      case 'ArrowRight':
-        moverEnPantalla(0, 1);
-        break;
-      default:
-        return;
-    }
-  }
-  window.addEventListener('keydown', alTeclaPresionada);
 
   function actualizar() {
-    if (!moviendo) return;
-    const t = Math.min((performance.now() - inicioMovimiento) / DURACION_PASO, 1);
-    mesh.position.lerpVectors(origenPos, destinoPos, t);
-    if (t >= 1) moviendo = false;
+    if (!animacion) return;
+    const t = Math.min((performance.now() - animacion.inicio) / animacion.duracion, 1);
+    const s = 1 - Math.pow(1 - t, 3);
+
+    malla.position.lerpVectors(desde, hasta, s);
+
+    // Un arco vertical durante el paso. En un puente imposible el arco es
+    // alto: el personaje "salta" a través del vacío que la perspectiva
+    // acaba de cerrar, y eso hace visible que ocurrió algo raro.
+    const alturaArco = animacion.puente ? ALTO * 0.9 : ALTO * 0.12;
+    malla.position.y += Math.sin(s * Math.PI) * alturaArco;
+
+    if (t >= 1) animacion = null;
   }
 
-  function destruir() {
-    window.removeEventListener('keydown', alTeclaPresionada);
-  }
-
-  return { actualizar, destruir };
+  return {
+    mover,
+    actualizar,
+    fijarRotacion,
+    get celda() { return celda; },
+    get rotacion() { return rotacion; },
+    get enMovimiento() { return animacion !== null; },
+  };
 }

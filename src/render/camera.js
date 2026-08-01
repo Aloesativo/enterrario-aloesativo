@@ -3,108 +3,78 @@ import * as THREE from 'three';
 const GRADOS = Math.PI / 180;
 
 /**
- * Director de cámara: es quien decide DÓNDE se para la cámara y CÓMO
- * encuadra. Sustituye a la cámara isométrica fija que vivía en scene.js.
+ * Director de cámara con DOS REGÍMENES, que es la idea entera:
  *
- * Por qué cambia el enfoque respecto de la versión anterior: antes se
- * rotaba el diorama alrededor del eje Y y la cámara no se movía nunca, así
- * que la altura del punto de vista era siempre la misma — cambiaba qué
- * cara quedaba al frente, pero nunca la composición. Eso no es lenguaje de
- * cámara, es girar un objeto sobre un plato. Aquí la cámara orbita de
- * verdad (azimut + elevación) y además cada plano puede cambiar encuadre,
- * inclinación y proyección.
+ *  1. MECÁNICO — isométrica fija. Nunca se mueve, nunca se inclina, nunca
+ *     opina. Encuadra el nivel entero y se queda quieto.
  *
- * Proyección animable: en vez de alternar entre cámara ortográfica y
- * cámara en perspectiva (dos objetos distintos, imposible de interpolar),
- * se usa UNA PerspectiveCamera con el fov como parámetro. Un fov muy bajo
- * a mucha distancia es visualmente indistinguible de una proyección
- * ortográfica —el look isométrico del prototipo— y un fov alto da fuga
- * real. Como es un solo número, se puede animar: pasar de fov bajo a fov
- * alto manteniendo el encuadre es literalmente un dolly zoom.
+ *  2. REVELACIÓN — al descubrir algo, la cámara se suelta: va a una
+ *     esquina, sube, se inclina, abre la perspectiva. Y vuelve.
  *
- * La distancia no se elige a mano, se deriva: para encuadrar una altura
- * `encuadre` con un `fov` dado, la cámara tiene que estar a
- * `encuadre / (2·tan(fov/2))`. Así "cuánto se ve" y "cuánta fuga hay" son
- * parámetros independientes, como en una cámara real (encuadre y focal).
+ * Por qué el régimen mecánico es aburrido A PROPÓSITO: el significado de
+ * un movimiento de cámara no está en el movimiento, está en la ruptura de
+ * una regla que el jugador llevaba rato obedeciendo. Si la cámara siempre
+ * se expresa, una toma cinematográfica no dice nada. Aburrirla durante el
+ * juego es lo que le da poder a la toma del hallazgo.
+ *
+ * Además hay una razón mecánica dura: el acertijo consiste en leer
+ * ALINEACIONES en pantalla. Si la cámara se moviera sola, las alineaciones
+ * cambiarían sin que el jugador lo pidiera, y el acertijo sería ilegible.
+ * La rigidez no es estética, es la condición para que se pueda jugar.
+ *
+ * La regla de oro de la toma de revelación: **devuelve al jugador
+ * exactamente al encuadre del que lo sacó**. Es un paréntesis, nunca una
+ * transición. Como el encuadre mecánico está completamente determinado
+ * (siempre el mismo azimut, la misma elevación, el mismo objetivo),
+ * volver exacto es trivial — otra ventaja de haberlo hecho rígido.
  */
-export function crearDirectorCamara({ theme, planos, escena, alturaCentro = 1 }) {
-  const { grilla, encuadreGenerico } = planos;
+export function crearDirectorCamara({ theme, planos, escena, objetivoMecanico, radioNivel }) {
+  const base = planos.mecanica;
 
-  const camera = new THREE.PerspectiveCamera(encuadreGenerico.fov, 1, 0.1, 1000);
+  // El encuadre se deriva del tamaño real del nivel en vez de ser un número
+  // fijo. Con un número fijo, mover una isla deja media escena fuera de
+  // cuadro sin que nada avise — y aquí lo que queda fuera de cuadro puede
+  // ser justo la isla que hay que alinear.
+  const encuadreMecanico = radioNivel * 2 * (base.margen ?? 1.2);
 
-  // Estado continuo de la cámara. Todo esto es lo que se anima.
+  const camera = new THREE.PerspectiveCamera(base.fov, 1, 0.1, 1000);
+
   const estado = {
-    azimut: (360 / grilla.azimutPasos) * grilla.azimutInicial * GRADOS,
-    elevacion: grilla.elevaciones[grilla.elevacionInicial] * GRADOS,
-    encuadre: encuadreGenerico.encuadre,
-    fov: encuadreGenerico.fov,
-    roll: encuadreGenerico.roll * GRADOS,
+    azimut: base.azimut * GRADOS,
+    elevacion: base.elevacion * GRADOS,
+    encuadre: encuadreMecanico,
+    fov: base.fov,
+    roll: 0,
   };
 
-  let azimutIndice = grilla.azimutInicial;
-  let elevacionIndice = grilla.elevacionInicial;
-  let planoActual = buscarPlano(azimutIndice, elevacionIndice);
+  const objetivo = new THREE.Vector3().fromArray(objetivoMecanico);
+  const objetivoActual = objetivo.clone();
 
-  // Objetivo (a qué mira). Se recalcula cada frame porque el personaje se
-  // mueve; durante una transición se interpola entre el objetivo anterior
-  // y el nuevo, ambos vivos.
-  const objetivoActual = new THREE.Vector3(0, alturaCentro, 0);
-  const objetivoOrigen = new THREE.Vector3(0, alturaCentro, 0);
-  let nombreObjetivoOrigen = encuadreGenerico.objetivo;
-  let nombreObjetivoDestino = encuadreGenerico.objetivo;
-
-  // El "volteo" del mundo: la parte híbrida. La mayoría de los planos deja
-  // el terrario derecho, pero algunos lo dan vuelta — ahí ya no se mueve la
-  // cámara, se mueve el mundo.
-  const volteoOrigen = new THREE.Quaternion();
-  const volteoDestino = new THREE.Quaternion();
-
-  // Transición entre planos.
-  const transicion = { activa: false, inicio: 0, duracion: 0, desde: null, hasta: null };
-
-  let objetoPersonaje = null;
-  let rigMundo = null;
   let aspecto = 1;
+  let regimen = 'mecanica';
 
-  function buscarPlano(ai, ei) {
-    return (
-      planos.planos.find((plano) => plano.celda[0] === ai && plano.celda[1] === ei) ?? null
-    );
-  }
+  const transicion = { activa: false, inicio: 0, duracion: 0, desde: null, hasta: null,
+    objetivoDesde: new THREE.Vector3(), objetivoHasta: new THREE.Vector3() };
 
-  /** Fusiona el plano curado de una celda con el encuadre genérico. */
-  function encuadreDe(plano) {
-    return { ...encuadreGenerico, ...(plano ?? {}) };
-  }
-
-  function posicionDelPersonaje(destino) {
-    if (!objetoPersonaje) return destino.set(0, alturaCentro, 0);
-    return objetoPersonaje.getWorldPosition(destino);
-  }
-
-  /**
-   * A qué mira la cámara. Tres formas, no dos:
-   *  - 'centro'    → el origen del diorama (el comportamiento original)
-   *  - 'personaje' → posición viva del personaje
-   *  - [x, y, z]   → un punto fijo del mundo
-   *
-   * La tercera es la que habilita el recorrido por zonas: cada zona del
-   * guion tiene un lugar en el mapa, y "ir a la zona" es mirar ese punto.
-   * Sin esto el director solo sabía encuadrar UN objeto, que es justo la
-   * diferencia entre rodear un objeto y recorrer un mapa.
-   */
-  function resolverObjetivo(nombre, destino) {
-    if (Array.isArray(nombre)) return destino.set(nombre[0], nombre[1], nombre[2]);
-    return nombre === 'personaje'
-      ? posicionDelPersonaje(destino)
-      : destino.set(0, alturaCentro, 0);
+  /** El encuadre mecánico, que es siempre el mismo. La referencia a la que
+   *  se vuelve después de cada revelación. */
+  function poseMecanica() {
+    return {
+      azimut: base.azimut * GRADOS,
+      elevacion: base.elevacion * GRADOS,
+      encuadre: encuadreMecanico,
+      fov: base.fov,
+      roll: 0,
+      objetivo: objetivo.clone(),
+    };
   }
 
   /**
-   * La altura visible se corrige por aspecto: en pantallas verticales
-   * (móvil en retrato) el ancho es el lado corto, así que hay que encuadrar
-   * MÁS alto para que el diorama entre a lo ancho. Sin esto, el mismo plano
-   * se ve bien en apaisado y recortado en retrato.
+   * En pantallas verticales el ancho es el lado corto, así que hay que
+   * encuadrar más alto para que el nivel entre a lo ancho. Sin esto el
+   * mismo encuadre se ve bien en apaisado y recortado en retrato — y en
+   * este artefacto recortar es fatal, porque lo que se recorta puede ser
+   * justo la isla que hay que alinear.
    */
   function encuadreEfectivo() {
     return aspecto < 1 ? estado.encuadre / aspecto : estado.encuadre;
@@ -114,161 +84,47 @@ export function crearDirectorCamara({ theme, planos, escena, alturaCentro = 1 })
     return encuadreEfectivo() / (2 * Math.tan((estado.fov * GRADOS) / 2));
   }
 
-  /**
-   * Motor de transición, compartido por los dos modos de navegación.
-   * Toma un encuadre de destino en grados y arma la interpolación.
-   *
-   * Se extrajo de irACelda cuando apareció el recorrido por zonas: ambos
-   * modos hacen exactamente lo mismo (interpolar hacia un encuadre), solo
-   * cambia de dónde sale el encuadre — de la grilla de planos o del mapa.
-   */
-  function transicionarA(encuadre, duracion) {
-    // Azimut por el camino más corto: sin esto, ir de 315° a 45° daría una
-    // vuelta larga de 270° en vez del giro de 90° que el usuario espera.
-    let deltaAzimut = encuadre.azimutGrados * GRADOS - estado.azimut;
-    while (deltaAzimut > Math.PI) deltaAzimut -= Math.PI * 2;
-    while (deltaAzimut < -Math.PI) deltaAzimut += Math.PI * 2;
-
+  function iniciarTransicion(hasta, duracion) {
     transicion.desde = { ...estado };
+    transicion.objetivoDesde.copy(objetivoActual);
     transicion.hasta = {
-      azimut: estado.azimut + deltaAzimut,
-      elevacion: encuadre.elevacionGrados * GRADOS,
-      encuadre: encuadre.encuadre,
-      fov: encuadre.fov,
-      roll: encuadre.roll * GRADOS,
+      azimut: hasta.azimut,
+      elevacion: hasta.elevacion,
+      encuadre: hasta.encuadre,
+      fov: hasta.fov,
+      roll: hasta.roll,
     };
-
-    nombreObjetivoOrigen = nombreObjetivoDestino;
-    nombreObjetivoDestino = encuadre.objetivo;
-    resolverObjetivo(nombreObjetivoOrigen, objetivoOrigen);
-
-    volteoOrigen.copy(rigMundo ? rigMundo.quaternion : new THREE.Quaternion());
-    const [vx, vy, vz] = encuadre.volteo ?? [0, 0, 0];
-    volteoDestino.setFromEuler(new THREE.Euler(vx * GRADOS, vy * GRADOS, vz * GRADOS));
-
+    transicion.objetivoHasta.copy(hasta.objetivo);
     transicion.activa = true;
     transicion.inicio = performance.now();
     transicion.duracion = duracion;
   }
 
-  function irACelda(nuevoAzimutIndice, nuevoElevacionIndice, duracion = 620) {
-    const pasos = grilla.azimutPasos;
-    azimutIndice = ((nuevoAzimutIndice % pasos) + pasos) % pasos;
-    elevacionIndice = Math.max(
-      0,
-      Math.min(grilla.elevaciones.length - 1, nuevoElevacionIndice)
-    );
-
-    planoActual = buscarPlano(azimutIndice, elevacionIndice);
-    const encuadre = encuadreDe(planoActual);
-
-    transicionarA(
+  /**
+   * Entra en régimen de revelación con un plano curado, encuadrando un
+   * punto concreto del mundo (la celda del hallazgo).
+   */
+  function revelar({ plano, punto, duracion = 1400 }) {
+    const encuadrePlano = planos.planosRevelacion[plano] ?? planos.planosRevelacion.vertigo;
+    regimen = 'revelacion';
+    iniciarTransicion(
       {
-        ...encuadre,
-        azimutGrados: (360 / pasos) * azimutIndice,
-        elevacionGrados: grilla.elevaciones[elevacionIndice],
+        azimut: encuadrePlano.azimut * GRADOS,
+        elevacion: encuadrePlano.elevacion * GRADOS,
+        encuadre: encuadrePlano.encuadre,
+        fov: encuadrePlano.fov,
+        roll: encuadrePlano.roll * GRADOS,
+        objetivo: new THREE.Vector3().fromArray(punto),
       },
       duracion
     );
-
-    return { plano: planoActual, encuadre };
+    return encuadrePlano;
   }
 
-  /**
-   * Recorrido por zonas: el verbo primario que pide el lore ("vista desde
-   * arriba, desplazamiento sin rotar, zoom a zonas específicas").
-   *
-   * No reemplaza a la grilla de planos, la usa: ir a una zona ES un cambio
-   * de plano, solo que el encuadre sale del mapa en vez de la grilla y el
-   * objetivo es un punto del mundo en vez del centro o el personaje. Por
-   * eso las transiciones siguen siendo cinematográficas y no un paneo
-   * crudo — que era lo que había que conservar de la versión anterior.
-   *
-   * Duración más larga que un paso de grilla a propósito: cruzar el mapa
-   * de la ciudad a la luna es un viaje, no un ajuste de encuadre.
-   */
-  function irAZona(zona, duracion = 1100) {
-    if (!zona) return null;
-
-    // El azimut se conserva salvo que la zona pida uno propio: así el
-    // desplazamiento entre zonas NO rota el mundo, que es exactamente lo
-    // que el lore pide. Rotar queda como gesto secundario y explícito.
-    const azimutGrados =
-      zona.azimut ?? (estado.azimut / GRADOS);
-
-    planoActual = null;
-    transicionarA(
-      {
-        ...encuadreGenerico,
-        ...zona,
-        objetivo: zona.objetivo ?? [0, alturaCentro, 0],
-        azimutGrados,
-        elevacionGrados: zona.elevacion ?? grilla.elevaciones[elevacionIndice],
-      },
-      duracion
-    );
-
-    return { zona };
-  }
-
-  /** Paso regular: A/D mueven el azimut, W/S la elevación. */
-  function paso({ azimut = 0, elevacion = 0 }) {
-    return irACelda(azimutIndice + azimut, elevacionIndice + elevacion);
-  }
-
-  function volverAlPlanoBase() {
-    return irACelda(grilla.azimutInicial, grilla.elevacionInicial, 700);
-  }
-
-  /**
-   * Órbita libre (arrastre táctil / mouse / stick). Mueve la cámara sin
-   * pasar por la grilla de planos: es el modo continuo, para dispositivos
-   * sin teclado. Cancela cualquier transición en curso.
-   */
-  function orbitarLibre(deltaAzimut, deltaElevacion) {
-    transicion.activa = false;
-    estado.azimut += deltaAzimut;
-    estado.elevacion = Math.max(
-      2 * GRADOS,
-      Math.min(88 * GRADOS, estado.elevacion + deltaElevacion)
-    );
-  }
-
-  function inclinarLibre(deltaRoll) {
-    transicion.activa = false;
-    estado.roll += deltaRoll;
-  }
-
-  /**
-   * Ejes de pantalla expresados en coordenadas de la grilla. Los sirve el
-   * director porque solo él sabe hacia dónde mira la cámara: sin esto, tras
-   * girar 90° la flecha "arriba" movería al personaje en diagonal respecto
-   * de lo que se ve, que es justo la fricción de controles que el prototipo
-   * quiere evitar.
-   */
-  function ejesPantallaEnGrilla() {
-    const adelanteMundo = new THREE.Vector3()
-      .subVectors(objetivoActual, camera.position)
-      .setY(0)
-      .normalize();
-    const derechaMundo = new THREE.Vector3(-adelanteMundo.z, 0, adelanteMundo.x);
-
-    // Si el mundo está volteado, hay que pasar del espacio del mundo al
-    // espacio local de la grilla antes de decidir en qué celda cae el paso.
-    if (rigMundo) {
-      const inversa = rigMundo.quaternion.clone().invert();
-      adelanteMundo.applyQuaternion(inversa).setY(0).normalize();
-      derechaMundo.applyQuaternion(inversa).setY(0).normalize();
-    }
-
-    return { adelante: ajustarAEje(adelanteMundo), derecha: ajustarAEje(derechaMundo) };
-  }
-
-  /** Redondea una dirección continua al eje de grilla más parecido. */
-  function ajustarAEje(vector) {
-    return Math.abs(vector.x) >= Math.abs(vector.z)
-      ? { dx: Math.sign(vector.x) || 1, dz: 0 }
-      : { dx: 0, dz: Math.sign(vector.z) || 1 };
+  /** Cierra el paréntesis: vuelve al encuadre mecánico exacto. */
+  function volverAMecanica(duracion = 1100) {
+    regimen = 'mecanica';
+    iniciarTransicion(poseMecanica(), duracion);
   }
 
   function ajustarAspecto(ancho, alto) {
@@ -279,19 +135,18 @@ export function crearDirectorCamara({ theme, planos, escena, alturaCentro = 1 })
   function actualizar() {
     if (transicion.activa) {
       const t = Math.min((performance.now() - transicion.inicio) / transicion.duracion, 1);
-      const s = 1 - Math.pow(1 - t, 3); // ease-out cúbico
-      for (const clave of ['azimut', 'elevacion', 'encuadre', 'fov', 'roll']) {
-        estado[clave] = transicion.desde[clave] + (transicion.hasta[clave] - transicion.desde[clave]) * s;
-      }
-      if (rigMundo) rigMundo.quaternion.slerpQuaternions(volteoOrigen, volteoDestino, s);
+      // Ease in-out: la toma de revelación tiene que arrancar y frenar
+      // suave. Un ease-out puro arranca de golpe y se siente como un corte,
+      // no como una cámara.
+      const s = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
-      const destinoVivo = resolverObjetivo(nombreObjetivoDestino, new THREE.Vector3());
-      resolverObjetivo(nombreObjetivoOrigen, objetivoOrigen);
-      objetivoActual.lerpVectors(objetivoOrigen, destinoVivo, s);
+      for (const clave of ['azimut', 'elevacion', 'encuadre', 'fov', 'roll']) {
+        estado[clave] =
+          transicion.desde[clave] + (transicion.hasta[clave] - transicion.desde[clave]) * s;
+      }
+      objetivoActual.lerpVectors(transicion.objetivoDesde, transicion.objetivoHasta, s);
 
       if (t >= 1) transicion.activa = false;
-    } else {
-      resolverObjetivo(nombreObjetivoDestino, objetivoActual);
     }
 
     const distancia = distanciaActual();
@@ -309,11 +164,11 @@ export function crearDirectorCamara({ theme, planos, escena, alturaCentro = 1 })
     camera.lookAt(objetivoActual);
     if (estado.roll !== 0) camera.rotateZ(estado.roll);
 
-    // La niebla se recalcula a partir de la distancia real, no se deja fija.
-    // Con la cámara moviéndose entre planos la distancia cambia mucho: unos
-    // valores fijos que funcionan de cerca dejan el diorama completamente
-    // invisible en un plano lejano (es exactamente el bug de niebla
-    // documentado en CLAUDE.md, pero ahora con la distancia variando sola).
+    // La niebla se recalcula a partir de la distancia real. Con la cámara
+    // cambiando de encuadre entre regímenes, unos valores fijos que
+    // funcionan en la isométrica dejan el nivel invisible en la toma de
+    // revelación (el bug de niebla documentado en CLAUDE.md, ahora con la
+    // distancia variando sola).
     if (escena.fog) {
       escena.fog.near = distancia * theme.niebla.factorCerca;
       escena.fog.far = distancia * theme.niebla.factorLejos;
@@ -324,15 +179,9 @@ export function crearDirectorCamara({ theme, planos, escena, alturaCentro = 1 })
     camera,
     actualizar,
     ajustarAspecto,
-    paso,
-    irACelda,
-    irAZona,
-    volverAlPlanoBase,
-    orbitarLibre,
-    inclinarLibre,
-    ejesPantallaEnGrilla,
-    vincularPersonaje: (objeto) => { objetoPersonaje = objeto; },
-    vincularRig: (rig) => { rigMundo = rig; },
-    get planoActual() { return planoActual; },
+    revelar,
+    volverAMecanica,
+    get regimen() { return regimen; },
+    get enTransicion() { return transicion.activa; },
   };
 }

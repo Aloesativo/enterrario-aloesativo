@@ -1,33 +1,65 @@
 # Enterrario
 
-Prototipo de diorama 3D isométrico procedural del universo Aloesativo.
-Repo independiente del catálogo (`Aloesativo/Aloesativo`) — sin conexión
-técnica entre ambos, la relación es implícita: el lore y el catálogo son
-material de referencia/inspiración, no una fuente de datos que este repo
-lea automáticamente.
+Prototipo de un espacio 3D isométrico del universo Aloesativo, donde
+descubrir un punto de vista revela una portada de álbum y hace sonar su
+canción. Repo independiente del catálogo (`Aloesativo/Aloesativo`) — sin
+conexión técnica entre ambos, la relación es implícita: el lore y el
+catálogo son material de referencia/inspiración, no una fuente de datos
+que este repo lea automáticamente.
 
 - **Nombre técnico (slug):** `enterrario-aloesativo`
 - **Nombre de marca:** Enterrario
 - **Nombre coloquial:** terrario / terrarium
 
-## Arquitectura: tres capas independientes
+## La idea, en una frase
+
+> Mueves al personaje para descubrir a dónde ir. Hay lugares a los que no
+> se llega si no rotas el escenario. Al alcanzar ciertos puntos de vista,
+> la cámara se suelta, se revela una portada y suena su canción — y luego
+> te devuelve exactamente donde estabas.
+
+Es un descubrimiento de canciones, no un mundo procedural. Todo lo demás
+—lore, paleta, cadena de imagen— es accesorio y está al servicio de eso.
+
+## El truco: la ambigüedad isométrica (inspirado en Fez)
+
+En proyección isométrica, dos puntos del mundo que están lejísimos pueden
+verse **exactamente pegados** desde cierta rotación del escenario. Girar
+el mundo 90° no es "mirar mejor": es **cambiar qué está conectado con
+qué**. Un abismo que separa dos islas puede desaparecer desde un ángulo y
+reaparecer al girar.
+
+Eso es lo que hace jugable el descubrimiento: hay caminos que solo existen
+en una rotación, y encontrarlos es el acertijo. `src/mundo/proyeccion.js`
+es la matemática exacta de esta ambigüedad; `src/mundo/navegacion.js`
+convierte esa matemática en la única regla de movimiento del juego:
+**puedes pisar lo que se ve pegado a ti**, sin excepciones.
+
+## Los dos regímenes de cámara
+
+1. **Mecánico** — isométrica fija, nunca se mueve. Su rigidez es la
+   condición de que el acertijo se pueda leer: si la cámara se moviera
+   sola, las alineaciones cambiarían sin que el jugador lo pidiera.
+2. **Revelación** — al descubrir algo, la cámara se suelta (dolly zoom,
+   ángulo holandés, retrato, cenital...), aparece la portada, suena algo, y
+   la cámara **vuelve exactamente al encuadre del que salió**. El
+   significado de un movimiento de cámara no está en el movimiento: está
+   en la ruptura de una regla que el jugador llevaba rato obedeciendo. Por
+   eso el régimen mecánico es aburrido a propósito.
+
+## Arquitectura: tres capas
 
 ```
-src/generator/   → datos puros generados (grilla, alturas, semilla). No sabe de Three.js ni colores.
-src/story/       → datos puros autorados: el guion (zonas, canciones, bucle). Tampoco sabe de Three.js.
-src/render/      → Three.js: cámara + traduce datos a mallas.
-src/theme/       → paleta/materiales. Es lo único que cambia cuando definas identidad visual.
+src/mundo/    → datos y reglas puras: proyección isométrica, navegación, el nivel. No sabe de Three.js.
+src/render/   → Three.js: los dos regímenes de cámara, mallas, controles, la revelación.
+src/theme/    → composición de cámara y paleta. Lo que cambia al definir identidad visual.
 ```
 
-(Son cuatro carpetas pero tres capas: `generator/` y `story/` son la misma
-capa de datos puros — una los genera por algoritmo, la otra los trae
-autorados desde el lore. Ver `src/story/README.md`.)
-
-La razón de separarlas así: hoy no hay identidad visual definida, pero la
-generación procedural sí se puede empezar a probar. `src/theme/default.json`
-es un placeholder "greybox" (grises lisos) — cuando tengas paleta y estilo
-de material definidos, se reemplaza ese archivo (o se agregan temas
-alternativos) sin tocar `generator/` ni la lógica de `render/`.
+`src/mundo/nivel.json` declara el nivel como rectángulos de celdas (islas)
+y una lista de revelaciones (celda → obra → plano cinematográfico). Mover
+cualquier isla rompe la alineación exacta que hace posible el puente —
+`validarNivel()` corre al arrancar y avisa en consola si un nivel dejó de
+tener solución, o si dejó de ser un acertijo (se alcanza sin rotar).
 
 ## Cómo ver el prototipo funcionando (sin instalar nada)
 
@@ -38,16 +70,8 @@ alternativos) sin tocar `generator/` ni la lógica de `render/`.
 **https://aloesativo.github.io/enterrario-aloesativo/**
 
 Esa URL es fija — se actualiza sola en 1-2 minutos después de cada push.
-Basta con abrirla en cualquier navegador. Parámetros de prueba en la URL:
-
-- `?semilla=texto-o-numero` — misma semilla, mismo diorama (reproducible).
-- `?tamano=20` — tamaño de la grilla (default 12x12).
-- `?postproceso=off` — apaga la cadena de postproceso, para comparar el
-  antes/después del tilt-shift sin editar nada.
-- `?velocidad=8` — acelera el bucle temporal, para no esperar dos minutos
-  a que se abra una ventana.
-- `?modelo=archivo.glb` — carga un diorama autorado en vez del procedural.
-  El archivo tiene que estar en `public/`. Si falla, se ve el greybox.
+`?postproceso=off` apaga la cadena de postproceso, para comparar el
+antes/después del tilt-shift sin editar nada.
 
 Nota histórica: se evaluaron StackBlitz y Claude Artifacts como formas de
 previsualizar sin instalar nada — ninguna terminó siendo la vía estable
@@ -63,79 +87,68 @@ npm install
 npm run dev
 ```
 
-## Estado actual
+## Controles
 
-Greybox: terreno con altura por ruido (senos, no Perlin real — no hace
-falta más para el prototipo), agua en las celdas más bajas, props cúbicos
-esparcidos al azar. Sin identidad visual todavía — es exactamente lo que
-se espera del prototipo en esta etapa: validar que la *composición*
-generada se vea bien en isométrico antes de gastar tiempo en arte.
-
-Sobre ese greybox ya está montada la cadena de imagen completa:
-iluminación de entorno (IBL), tone mapping filmico, sombras proyectadas y
-postproceso con tilt-shift, bloom, viñeta y grano. El tilt-shift es el
-que hace que la escena se lea como *miniatura fotografiada* en vez de
-render genérico — compáralo con `?postproceso=off`.
-
-Todos los valores viven en `src/theme/default.json` como placeholders
-marcados. El mecanismo está; el look lo define RR.
-
-## Cómo se recorre
-
-El verbo primario es **viajar entre zonas del mapa**, como pide el lore
-(*"vista desde arriba, desplazamiento sin rotar, zoom a zonas
-específicas"*). Orbitar sigue disponible, pero como gesto secundario.
+Dos verbos, y solo dos:
 
 | Entrada | Efecto |
 |---|---|
-| `←` `→`, toque en el borde lateral, bumpers | Zona anterior / siguiente |
-| `A` `D` `W` `S`, arrastre, stick | Órbita y elevación (secundario) |
-| `↑` `↓` | Mueven al personaje dentro de la zona |
-| `espacio` | Pausa el reloj del bucle |
-| `R`, botón A | Vuelve a la zona inicial |
+| flechas, arrastre corto | Mueve al personaje |
+| `A` / `D`, toque en el borde lateral, bumpers | Rota el escenario 90° |
 
-Se descartó el swipe horizontal para cambiar de zona: un arrastre rápido
-de lado a lado es exactamente lo que hace alguien orbitando, así que los
-dos gestos competirían. Un toque sin desplazamiento en el borde es
-inequívoco.
+No hay órbita libre ni movimiento de cámara manual: la cámara del juego no
+se toca, ni siquiera un poco — es la condición de que el acertijo se
+pueda leer.
 
 Desde la consola del navegador (única herramienta de inspección
 disponible, dado que no hay flujo local):
 
 ```js
-enterrario.situar(90)      // salta al segundo 90 del bucle
-enterrario.zona('luna')    // viaja a una zona por id
-enterrario.queSuena()      // qué sonaría aquí y ahora, y por qué
+enterrario.celda()          // dónde está el personaje ahora
+enterrario.rotacion()       // 0..3
+enterrario.alcanzables()    // qué celdas se pueden pisar desde aquí, en la rotación actual
+enterrario.nivel.navegacion // acceso directo a las reglas de movimiento
 ```
 
-## Qué suena y cuándo
+## Estado actual
 
-La regla del lore: **la canción depende de dónde miras y de cuándo**. Si
-llegas al lugar correcto en el momento equivocado, no suena — porque en
-ese momento está pasando otra cosa en otra parte.
+Un nivel de una sola revelación, verificado matemática y visualmente: dos
+islas separadas por 16 celdas de mundo y 5 de altura que se ven pegadas
+solo en la rotación 0 (medido en pantalla, no solo en teoría). Sin rotar,
+el puente no existe — comprobado.
 
-Hay dos capas:
+La portada y el acorde de la revelación son **placeholders descarados**:
+un canvas generado y un sintetizador Web Audio, para poder sentir el
+latido del hallazgo sin tener aún el arte ni los `.opus` reales. Cuando
+existan, se reemplazan sin tocar la lógica de la revelación
+(`src/render/revelacion.js`).
 
-- **Instrumentales** (*"música para hacer nada"*) — suenan siempre que
-  estés en su zona, sin importar el bucle. Plantas, gnomos, estatuas:
-  puntos de contemplación fijos.
-- **Temáticas** — solo dentro de su ventana temporal.
+Sobre el greybox está montada la cadena de imagen: IBL, tone mapping
+filmico, sombras proyectadas y postproceso con tilt-shift, bloom, viñeta y
+grano. El tilt-shift cambia de fuerza según el régimen: ancho y funcional
+mientras se juega, cerrado en miniatura fotografiada durante la
+revelación — un valor fijo hacía el acertijo ilegible (desenfocaba la
+alineación que hay que leer), así que quedó atado al régimen de cámara en
+vez de sacrificado.
 
-Mientras no haya audio, **el HUD es la demostración**: dice qué suena, o
-por qué no. Distingue "aquí hay canción pero no es su momento" de "aquí
-falta lore todavía", para que el trabajo pendiente se vea.
+Todos los valores de cámara, color y postproceso viven en `src/theme/`
+como placeholders marcados. El mecanismo está; el look lo define RR.
+
+## Sobre `src/story/` (histórico)
+
+`src/story/burdeo.json` guarda el lore de Burdeo transcrito a mano del
+repo hermano — zonas, canciones, colores por nombre. Es una iteración
+anterior que asumía otro mecanismo (viajar entre zonas con un reloj
+temporal) y **ya no está conectada al juego**. El contenido narrativo
+sigue siendo válido como referencia; la estructura que lo envolvía no.
+Cuando se decida cómo mapear canciones concretas a revelaciones concretas
+del nuevo sistema, ese archivo es el punto de partida — pero como fuente
+de datos, no como mecánica a restaurar.
 
 ## El camino hacia el diorama autorado
 
 La generación procedural resuelve "necesito contenido infinito y barato".
-El Enterrario necesita lo contrario: unas pocas escenas concretas que
-cuenten algo. Por eso `src/render/modelo.js` permite cargar un `.glb`
-modelado en Blender, que además habilita **hornear la iluminación**
-(calidad de raytracing incrustada en las texturas, coste cero en runtime).
-
-Mientras no exista ese `.glb`, el greybox procedural sigue siendo lo que
-se ve. Se puede probar uno sin tocar código con `?modelo=archivo.glb`.
-
-Nota al exportar desde Blender: **sin compresión Draco**. El decodificador
-es un wasm aparte que el cargador no incluye, así que un `.glb` con Draco
-falla y cae al greybox (queda avisado en la consola).
+Este artefacto necesita lo contrario: unas pocas islas concretas,
+modeladas a mano, que escondan un hallazgo. `src/render/nivel.js` usa
+losas delgadas en vez de cubos altos a propósito — un cubo alto tapa lo
+que hay detrás, y ver lo que hay detrás es el juego.

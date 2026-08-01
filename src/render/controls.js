@@ -1,288 +1,130 @@
 /**
- * Controles de cámara. Ya no rotan el diorama: le hablan al director de
- * cámara (camera.js), que es quien decide el encuadre.
+ * Entrada. Dos verbos, y solo dos:
  *
- * Dos modos conviven, igual que antes, pero ahora ambos mueven la CÁMARA:
+ *   MOVER el personaje  → flechas / arrastre corto / d-pad / stick
+ *   ROTAR el escenario  → A y D / toque en el borde / bumpers
  *
- *  - Encausado (teclado): A/D avanzan un paso de azimut, W/S suben y bajan
- *    un escalón de elevación. Cada combinación de ambos índices cae en una
- *    celda de la grilla; las celdas curadas en planos.json traen encuadre,
- *    inclinación, proyección y objetivo propios. Por eso el cambio de
- *    perspectiva se siente narrativo y no como un giro mecánico: no estás
- *    recorriendo un rango continuo, estás saltando entre planos.
- *
- *  - Libre (touch/mouse/gamepad): órbita continua para dispositivos sin
- *    teclado. Arrastrar = azimut + elevación, 2 dedos = inclinación de
- *    cámara (ángulo holandés), gamepad = lo mismo con stick y gatillos.
- *
- * Las flechas NO están aquí: son del personaje (ver personaje.js).
+ * Que sean solo dos es deliberado. En la versión anterior convivían el
+ * movimiento del personaje, el viaje entre zonas, la órbita libre, la
+ * inclinación a dos dedos y los pasos por una grilla de planos — cinco
+ * verbos peleando por los mismos dedos, y el resultado fue que ninguno se
+ * entendía. Aquí no hay órbita libre a propósito: la cámara del juego no
+ * se toca, ni siquiera un poco.
  */
-export function crearControlesCamara({
-  canvas,
-  director,
-  alCambiarPlano,
-  alZona,
-  alReiniciar,
-  alPausarReloj,
-}) {
-  const SENSIBILIDAD_ARRASTRE = 0.006;
-  const SENSIBILIDAD_TORSION = 1.0;
-  const SENSIBILIDAD_GAMEPAD = 0.03;
-  const FRICCION = 0.9;
-  const UMBRAL_REPOSO = 0.00005;
+export function crearControles({ canvas, alMover, alRotar, alGesto }) {
+  const DIRECCIONES = {
+    ArrowUp: 'arribaDerecha',
+    ArrowDown: 'abajoIzquierda',
+    ArrowLeft: 'arribaIzquierda',
+    ArrowRight: 'abajoDerecha',
+  };
 
-  const punteros = new Map();
-  let anguloTorsionPrevio = null;
-  const velocidad = { azimut: 0, elevacion: 0, roll: 0 };
+  const UMBRAL_ARRASTRE = 26; // px mínimos para que un arrastre cuente
+  const BANDA_BORDE = 0.16;   // proporción del ancho que rota al tocarla
 
-  function vibrar(patron) {
-    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(patron);
-  }
-
-  function anunciar(resultado) {
-    if (resultado && alCambiarPlano) alCambiarPlano(resultado);
-    // Un plano curado vibra distinto que una celda genérica: el cuerpo
-    // avisa que llegaste a un encuadre "con nombre".
-    vibrar(resultado?.plano ? [12, 30, 12] : 10);
-  }
-
-  // --- Pointer (mouse + touch) — órbita libre ---
-  // Origen del toque, para distinguir un TOQUE de un ARRASTRE al soltar.
-  let origenToque = null;
+  let origen = null;
 
   function alPointerDown(evento) {
     canvas.setPointerCapture(evento.pointerId);
-    punteros.set(evento.pointerId, { x: evento.clientX, y: evento.clientY });
-    velocidad.azimut = 0;
-    velocidad.elevacion = 0;
-    velocidad.roll = 0;
-    if (punteros.size === 1) {
-      origenToque = { x: evento.clientX, y: evento.clientY, t: performance.now() };
-      vibrar(10);
-    } else {
-      origenToque = null;
-    }
-  }
-
-  function alPointerMove(evento) {
-    const previo = punteros.get(evento.pointerId);
-    if (!previo) return;
-    const actual = { x: evento.clientX, y: evento.clientY };
-
-    if (punteros.size === 1) {
-      const deltaAzimut = -(actual.x - previo.x) * SENSIBILIDAD_ARRASTRE;
-      const deltaElevacion = (actual.y - previo.y) * SENSIBILIDAD_ARRASTRE;
-      director.orbitarLibre(deltaAzimut, deltaElevacion);
-      velocidad.azimut = deltaAzimut;
-      velocidad.elevacion = deltaElevacion;
-    } else if (punteros.size === 2) {
-      punteros.set(evento.pointerId, actual);
-      const [p1, p2] = [...punteros.values()];
-      const anguloActual = Math.atan2(p2.y - p1.y, p2.x - p1.x);
-      if (anguloTorsionPrevio !== null) {
-        let delta = anguloActual - anguloTorsionPrevio;
-        if (delta > Math.PI) delta -= Math.PI * 2;
-        if (delta < -Math.PI) delta += Math.PI * 2;
-        const roll = delta * SENSIBILIDAD_TORSION;
-        director.inclinarLibre(roll);
-        velocidad.roll = roll;
-      }
-      anguloTorsionPrevio = anguloActual;
-      return;
-    }
-    punteros.set(evento.pointerId, actual);
+    origen = { x: evento.clientX, y: evento.clientY };
+    alGesto?.();
   }
 
   /**
-   * Navegación por zonas en táctil, sin pelear con la órbita.
-   *
-   * Se descartó el swipe horizontal: un arrastre rápido de lado a lado es
-   * exactamente lo que hace alguien orbitando, así que los dos gestos
-   * competirían y la cámara cambiaría de zona sola. Un TOQUE (sin
-   * desplazamiento) en el borde lateral es inequívoco: si el dedo no se
-   * movió, no estabas orbitando.
+   * Al soltar se decide qué fue el gesto. Se resuelve al SOLTAR y no
+   * durante el arrastre para que no haya ambigüedad: mientras el dedo está
+   * abajo no pasa nada, así que ningún gesto se dispara a medias.
    */
-  const BANDA_BORDE = 0.18;   // proporción del ancho que cuenta como borde
-  const UMBRAL_TOQUE = 12;    // px: más que esto ya es arrastre, no toque
-  const MS_TOQUE = 500;
-
   function alPointerUp(evento) {
-    punteros.delete(evento.pointerId);
-    if (punteros.size < 2) anguloTorsionPrevio = null;
+    if (!origen) return;
+    const dx = evento.clientX - origen.x;
+    const dy = evento.clientY - origen.y;
+    const recorrido = Math.hypot(dx, dy);
+    origen = null;
 
-    if (!origenToque || !alZona) {
-      origenToque = null;
+    if (recorrido < UMBRAL_ARRASTRE) {
+      // Toque: los bordes laterales rotan el escenario.
+      const ancho = canvas.clientWidth || window.innerWidth;
+      if (evento.clientX < ancho * BANDA_BORDE) alRotar(-1);
+      else if (evento.clientX > ancho * (1 - BANDA_BORDE)) alRotar(1);
       return;
     }
 
-    const recorrido = Math.hypot(
-      evento.clientX - origenToque.x,
-      evento.clientY - origenToque.y
-    );
-    const duracion = performance.now() - origenToque.t;
-    origenToque = null;
-
-    if (recorrido > UMBRAL_TOQUE || duracion > MS_TOQUE) return;
-
-    const ancho = canvas.clientWidth || window.innerWidth;
-    if (evento.clientX < ancho * BANDA_BORDE) {
-      alZona(-1);
-      vibrar([12, 30, 12]);
-    } else if (evento.clientX > ancho * (1 - BANDA_BORDE)) {
-      alZona(1);
-      vibrar([12, 30, 12]);
+    // Arrastre: las cuatro diagonales de la retícula isométrica.
+    // Se compara |dx| con |dy| para elegir el eje dominante y luego el
+    // signo — así cualquier arrastre cae siempre en una de las cuatro, sin
+    // zonas muertas donde el gesto no haga nada.
+    if (Math.abs(dx) > Math.abs(dy)) {
+      alMover(dx > 0 ? 'abajoDerecha' : 'arribaIzquierda');
+    } else {
+      alMover(dy > 0 ? 'abajoIzquierda' : 'arribaDerecha');
     }
   }
 
-  function alDobleClick() {
-    anunciar(director.volverAlPlanoBase());
+  function alPointerCancel() {
+    origen = null;
   }
 
   canvas.style.touchAction = 'none';
   canvas.addEventListener('pointerdown', alPointerDown);
-  canvas.addEventListener('pointermove', alPointerMove);
   canvas.addEventListener('pointerup', alPointerUp);
-  canvas.addEventListener('pointercancel', alPointerUp);
-  canvas.addEventListener('dblclick', alDobleClick);
+  canvas.addEventListener('pointercancel', alPointerCancel);
 
-  // --- Teclado — pasos por la grilla de planos ---
-  function alTeclaPresionada(evento) {
-    switch (evento.key) {
-      case 'a':
-      case 'A':
-        anunciar(director.paso({ azimut: -1 }));
-        break;
-      case 'd':
-      case 'D':
-        anunciar(director.paso({ azimut: 1 }));
-        break;
-      case 'w':
-      case 'W':
-        anunciar(director.paso({ elevacion: 1 }));
-        break;
-      case 's':
-      case 'S':
-        anunciar(director.paso({ elevacion: -1 }));
-        break;
-      // Izquierda/derecha recorren el mapa. Es el verbo primario del lore
-      // ("desplazamiento sin rotar, zoom a zonas"), así que se queda con
-      // el gesto más disponible; orbitar pasa a ser secundario y explícito.
-      case 'ArrowLeft':
-        evento.preventDefault();
-        alZona?.(-1);
-        vibrar([12, 30, 12]);
-        break;
-      case 'ArrowRight':
-        evento.preventDefault();
-        alZona?.(1);
-        vibrar([12, 30, 12]);
-        break;
-      case ' ':
-        evento.preventDefault();
-        alPausarReloj?.();
-        vibrar(20);
-        break;
-      case 'r':
-      case 'R':
-        if (alReiniciar) alReiniciar();
-        else anunciar(director.volverAlPlanoBase());
-        break;
-      default:
-        return;
+  function alTecla(evento) {
+    const direccion = DIRECCIONES[evento.key];
+    if (direccion) {
+      evento.preventDefault();
+      alGesto?.();
+      alMover(direccion);
+      return;
     }
-    velocidad.azimut = 0;
-    velocidad.elevacion = 0;
-    velocidad.roll = 0;
+    switch (evento.key) {
+      case 'a': case 'A': alGesto?.(); alRotar(-1); break;
+      case 'd': case 'D': alGesto?.(); alRotar(1); break;
+      default: return;
+    }
   }
-  window.addEventListener('keydown', alTeclaPresionada);
+  window.addEventListener('keydown', alTecla);
 
-  // --- Gamepad (Xbox / genérico Android) ---
-  const BOTON_RESET = 0; // A / Cross
-  const BOTON_PASO_IZQ = 4; // LB
-  const BOTON_PASO_DER = 5; // RB
-  const estadoBotones = { reset: false, pasoIzq: false, pasoDer: false };
+  // --- Gamepad ---
+  const BOTON_ROTAR_IZQ = 4; // LB
+  const BOTON_ROTAR_DER = 5; // RB
+  const estado = { izq: false, der: false, eje: false };
 
   function leerGamepad() {
     if (typeof navigator === 'undefined' || !navigator.getGamepads) return;
     const [gamepad] = navigator.getGamepads();
     if (!gamepad) return;
 
-    const zonaMuerta = 0.15;
-    const limpiar = (valor) => (Math.abs(valor) < zonaMuerta ? 0 : valor);
+    const x = gamepad.axes[0] ?? 0;
+    const y = gamepad.axes[1] ?? 0;
+    const fuera = Math.hypot(x, y) > 0.55;
 
-    const deltaAzimut = -limpiar(gamepad.axes[0] ?? 0) * SENSIBILIDAD_GAMEPAD;
-    const deltaElevacion = limpiar(gamepad.axes[1] ?? 0) * SENSIBILIDAD_GAMEPAD;
-    if (deltaAzimut !== 0 || deltaElevacion !== 0) {
-      director.orbitarLibre(deltaAzimut, deltaElevacion);
-      velocidad.azimut = deltaAzimut;
-      velocidad.elevacion = deltaElevacion;
+    // El stick da UN paso por empujón, no un chorro continuo: el juego se
+    // piensa celda a celda y un movimiento continuo lo volvería resbaladizo.
+    if (fuera && !estado.eje) {
+      if (Math.abs(x) > Math.abs(y)) alMover(x > 0 ? 'abajoDerecha' : 'arribaIzquierda');
+      else alMover(y > 0 ? 'abajoIzquierda' : 'arribaDerecha');
     }
+    estado.eje = fuera;
 
-    const lt = gamepad.buttons[6]?.value ?? 0;
-    const rt = gamepad.buttons[7]?.value ?? 0;
-    const roll = (rt - lt) * SENSIBILIDAD_GAMEPAD;
-    if (roll !== 0) {
-      director.inclinarLibre(roll);
-      velocidad.roll = roll;
-    }
-
-    // Los bumpers pasaron de mover el azimut a recorrer el mapa: ahora que
-    // el verbo primario es viajar entre zonas, es lo que corresponde al
-    // botón más accesible. Orbitar sigue disponible en el stick.
-    pulsacion(gamepad, BOTON_PASO_IZQ, 'pasoIzq', () =>
-      alZona ? alZona(-1) : anunciar(director.paso({ azimut: -1 }))
-    );
-    pulsacion(gamepad, BOTON_PASO_DER, 'pasoDer', () =>
-      alZona ? alZona(1) : anunciar(director.paso({ azimut: 1 }))
-    );
-    pulsacion(gamepad, BOTON_RESET, 'reset', () => {
-      if (alReiniciar) alReiniciar();
-      else anunciar(director.volverAlPlanoBase());
-      const actuador = gamepad.vibrationActuator ?? gamepad.hapticActuators?.[0];
-      if (actuador?.playEffect) {
-        actuador.playEffect('dual-rumble', {
-          duration: 120,
-          strongMagnitude: 0.5,
-          weakMagnitude: 0.3,
-        });
-      } else if (actuador?.pulse) {
-        actuador.pulse(0.4, 120);
-      }
-    });
+    pulsacion(gamepad, BOTON_ROTAR_IZQ, 'izq', () => alRotar(-1));
+    pulsacion(gamepad, BOTON_ROTAR_DER, 'der', () => alRotar(1));
   }
 
   function pulsacion(gamepad, indice, clave, accion) {
     const presionado = gamepad.buttons[indice]?.pressed ?? false;
-    if (presionado && !estadoBotones[clave]) accion();
-    estadoBotones[clave] = presionado;
+    if (presionado && !estado[clave]) { alGesto?.(); accion(); }
+    estado[clave] = presionado;
   }
 
-  function actualizar() {
-    leerGamepad();
-
-    if (punteros.size === 0) {
-      const enMovimiento =
-        Math.abs(velocidad.azimut) > UMBRAL_REPOSO ||
-        Math.abs(velocidad.elevacion) > UMBRAL_REPOSO ||
-        Math.abs(velocidad.roll) > UMBRAL_REPOSO;
-      if (enMovimiento) {
-        director.orbitarLibre(velocidad.azimut, velocidad.elevacion);
-        if (velocidad.roll !== 0) director.inclinarLibre(velocidad.roll);
-        velocidad.azimut *= FRICCION;
-        velocidad.elevacion *= FRICCION;
-        velocidad.roll *= FRICCION;
-      }
-    }
-  }
-
-  function destruir() {
-    canvas.removeEventListener('pointerdown', alPointerDown);
-    canvas.removeEventListener('pointermove', alPointerMove);
-    canvas.removeEventListener('pointerup', alPointerUp);
-    canvas.removeEventListener('pointercancel', alPointerUp);
-    canvas.removeEventListener('dblclick', alDobleClick);
-    window.removeEventListener('keydown', alTeclaPresionada);
-  }
-
-  return { actualizar, destruir };
+  return {
+    actualizar: leerGamepad,
+    destruir() {
+      canvas.removeEventListener('pointerdown', alPointerDown);
+      canvas.removeEventListener('pointerup', alPointerUp);
+      canvas.removeEventListener('pointercancel', alPointerCancel);
+      window.removeEventListener('keydown', alTecla);
+    },
+  };
 }
