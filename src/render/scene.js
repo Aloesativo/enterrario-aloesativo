@@ -93,5 +93,5 @@ export function crearEscena({ canvas, theme }) {
 
   ajustarTamano();
 
-  return { scene, renderer, alRedimensionar };
+  return { scene, renderer, alRedimensionar, luzAmbiental, luzDireccional };
 }

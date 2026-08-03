@@ -73,6 +73,22 @@ Esa URL es fija — se actualiza sola en 1-2 minutos después de cada push.
 `?postproceso=off` apaga la cadena de postproceso, para comparar el
 antes/después del tilt-shift sin editar nada.
 
+### Panel de configuración (`?config=1`)
+
+Para tunear valores chicos sin abrir una rama y un PR por cada número,
+`?config=1` en la URL carga un panel (lil-gui) con controles en vivo:
+duración del paso y del puente del personaje, umbral de arrastre y banda
+de borde táctiles, y los dos factores de niebla (justo los que, si se van
+por debajo de ~1.5 en `factorLejos`, pintan todo invisible — ver la
+lección del bug de niebla en `CLAUDE.md`).
+
+Es una herramienta de sesión: los cambios se pierden al recargar la
+página, nada se escribe en el repo. El botón "Copiar theme actual (JSON)"
+exporta el estado actual del theme al portapapeles para pegarlo a mano en
+`src/theme/default.json` cuando un valor probado convence — la elección
+final sigue siendo de RR, el panel solo la agiliza. Bundle de lil-gui
+cargado solo bajo demanda: no pesa nada en la página normal.
+
 Nota histórica: se evaluaron StackBlitz y Claude Artifacts como formas de
 previsualizar sin instalar nada — ninguna terminó siendo la vía estable
 (StackBlitz requiere que el usuario abra sesión con su GitHub; Artifacts

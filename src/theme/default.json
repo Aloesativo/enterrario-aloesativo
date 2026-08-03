@@ -73,5 +73,15 @@
     "baliza": "#e0c060",
     "_nota_baliza": "Marca las revelaciones antes de descubrirlas. PLACEHOLDER."
   },
-  "materialStyle": "flat"
+  "materialStyle": "flat",
+  "personaje": {
+    "_nota": "duración de la animación de paso, en ms. No es identidad visual, es sensación de juego — antes vivía hardcodeado en render/personaje.js. Ajustable en caliente desde el panel de configuración (?config=1).",
+    "duracionPaso": 160,
+    "duracionPuente": 420
+  },
+  "controles": {
+    "_nota": "gestos táctiles. umbralArrastre en px, bandaBorde como proporción del ancho de pantalla. Antes vivían hardcodeados en render/controls.js.",
+    "umbralArrastre": 26,
+    "bandaBorde": 0.16
+  }
 }

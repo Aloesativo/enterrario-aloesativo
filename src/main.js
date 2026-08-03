@@ -30,7 +30,7 @@ if (problemas.length) console.warn('[enterrario] nivel roto:', problemas);
 const canvas = document.createElement('canvas');
 document.body.prepend(canvas);
 
-const { scene, renderer, alRedimensionar } = crearEscena({ canvas, theme: themeActivo });
+const { scene, renderer, alRedimensionar, luzDireccional } = crearEscena({ canvas, theme: themeActivo });
 instalarEntorno({ renderer, scene, theme: themeActivo });
 
 // El rig es el escenario que gira. La cámara NO se mueve: lo que rota es
@@ -229,9 +229,15 @@ function aplicarRotacion(delta) {
   pintarHud();
 }
 
-function mover(direccion) {
-  if (revelacionEnCurso) return;
-  const resultado = controlador.mover(direccion);
+/**
+ * Compartida entre el movimiento directo (tecla/arrastre/gamepad) y el
+ * paso encolado que se dispara solo cuando termina la animación en curso
+ * (ver crearControladorPersonaje en render/personaje.js): para el jugador
+ * ambos son "pulsé una tecla y algo pasó", así que HUD y detección de
+ * revelación tienen que reaccionar igual a los dos.
+ */
+function procesarResultado(resultado) {
+  if (!resultado) return;
   if (resultado.movido) {
     ultimoPaso = resultado.puenteImposible ? 'puente' : 'paso';
     const revelacion = nivel.revelacionEn(resultado.celda);
@@ -242,8 +248,14 @@ function mover(direccion) {
   pintarHud();
 }
 
+function mover(direccion) {
+  if (revelacionEnCurso) return;
+  procesarResultado(controlador.mover(direccion));
+}
+
 const controles = crearControles({
   canvas,
+  theme: themeActivo,
   alMover: mover,
   alRotar: aplicarRotacion,
   // El contexto de audio solo se puede crear tras un gesto del usuario.
@@ -298,7 +310,10 @@ function animar() {
     baliza.position.y += Math.sin(performance.now() * 0.003) * 0.004;
   }
 
-  controlador.actualizar();
+  // Si termina un paso y había una tecla encolada, actualizar() la dispara
+  // sola y devuelve su resultado — hay que tratarlo igual que un mover()
+  // directo (ver procesarResultado más arriba).
+  procesarResultado(controlador.actualizar());
   actualizarRevelacion();
   director.actualizar();
 
@@ -314,6 +329,17 @@ function animar() {
 }
 
 animar();
+
+// Panel de ajuste en vivo, solo si se pide explícitamente por URL. No se
+// carga en el flujo normal (ni el bundle de lil-gui) — así no hay costo ni
+// riesgo para RR viendo la página normal en Pages, y quien quiera tunear
+// "esas cosas chicas" sin abrir rama+PR entra por
+// https://aloesativo.github.io/enterrario-aloesativo/?config=1
+if (parametros.get('config') === '1') {
+  import('./debug/panel.js').then(({ montarPanel }) => {
+    montarPanel({ theme: themeActivo, luzDireccional });
+  });
+}
 
 /** Ventanilla de inspección desde la consola del navegador. */
 window.enterrario = {
