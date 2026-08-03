@@ -11,7 +11,7 @@
  * entendía. Aquí no hay órbita libre a propósito: la cámara del juego no
  * se toca, ni siquiera un poco.
  */
-export function crearControles({ canvas, alMover, alRotar, alGesto }) {
+export function crearControles({ canvas, theme, alMover, alRotar, alGesto }) {
   // Los nombres 'arriba'/'abajo' de mundo/proyeccion.js describen el signo
   // en el espacio de pantalla (A,B), no lo que el ojo ve. Esta grilla en
   // diamante solo tiene CUATRO pasos posibles, y los cuatro son diagonales
@@ -33,8 +33,12 @@ export function crearControles({ canvas, alMover, alRotar, alGesto }) {
     ArrowRight: 'abajoDerecha',
   };
 
-  const UMBRAL_ARRASTRE = 26; // px mínimos para que un arrastre cuente
-  const BANDA_BORDE = 0.16;   // proporción del ancho que rota al tocarla
+  // Se leen de theme.controles en cada gesto (no se cachean en constantes)
+  // para que el panel de configuración (?config=1) pueda tunearlos en vivo
+  // sin recargar. 26px / 0.16 son los valores por defecto si el theme no
+  // trae la sección.
+  const umbralArrastre = () => theme?.controles?.umbralArrastre ?? 26;
+  const bandaBorde = () => theme?.controles?.bandaBorde ?? 0.16;
 
   let origen = null;
 
@@ -56,11 +60,12 @@ export function crearControles({ canvas, alMover, alRotar, alGesto }) {
     const recorrido = Math.hypot(dx, dy);
     origen = null;
 
-    if (recorrido < UMBRAL_ARRASTRE) {
+    if (recorrido < umbralArrastre()) {
       // Toque: los bordes laterales rotan el escenario.
       const ancho = canvas.clientWidth || window.innerWidth;
-      if (evento.clientX < ancho * BANDA_BORDE) alRotar(-1);
-      else if (evento.clientX > ancho * (1 - BANDA_BORDE)) alRotar(1);
+      const banda = bandaBorde();
+      if (evento.clientX < ancho * banda) alRotar(-1);
+      else if (evento.clientX > ancho * (1 - banda)) alRotar(1);
       return;
     }
 
