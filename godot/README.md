@@ -1,108 +1,110 @@
-# godot/ — prototipo en Godot (reemplazo en curso del pipeline Three.js)
+# godot/ — prototipo por etapas
 
-## Qué es esto y por qué existe
+> **Antes de tocar cualquier cosa acá: leer `../DISENO_GODOT.md`.**
+> Este prototipo se construye por etapas chicas definidas ahí (§10). Si lo
+> que vas a escribir no está en ese documento, no se escribe: se propone,
+> se acuerda, se anota, y recién después se construye.
 
-RR decidió (2026-08-09, en una conversación aparte que no quedó registrada
-en este repo — por eso esta nota) pasar el diorama de Three.js/Vite a
-Godot: más control y autonomía, y sobre todo poder probarlo **en vivo, en
-un computador dedicado (el Dell), con un control conectado**, en vez de
-depender solo de lo que se ve en GitHub Pages.
+## Estado: ETAPA 1 — un personaje que camina por celdas
 
-**La intención es reemplazar** el prototipo de `src/` (Three.js), no
-tener los dos para siempre. Pero mientras el de Godot no esté verificado
-funcionando en la máquina de RR, `src/` se queda tal cual y Pages lo
-sigue sirviendo — así siempre hay algo mostrable. El día que el de Godot
-ande, se retira `src/` y el workflow de deploy (`.github/workflows/deploy.yml`,
-hoy compila el proyecto Vite) se reemplaza por un export web de Godot.
+Es a propósito lo mínimo posible. Grilla plana de 9×9, un damero gris, una
+cápsula gris que camina. **Nada más.**
 
-## Aviso importante: el agente no puede correr Godot
+Lo único que hay que juzgar en esta etapa es **cómo se siente el paso.**
 
-El agente que escribió esto trabaja en un entorno remoto sin GUI y sin
-acceso de red al sitio de descarga de Godot (política de egress de la
-sesión — no es negociable ni algo que se pueda evitar). Los archivos de
-Godot son texto plano (`.tscn`, `.gd`, `project.godot`) y se escriben a
-mano con mucho cuidado de sintaxis, pero **cada verificación real es la
-de RR, corriendo esto en su máquina.** Si algo no carga o tira un error,
-copiá el mensaje tal cual aparece en la terminal (no lo resumas) — con
-eso el agente lo corrige, no puede adivinar el error sin verlo.
+### Cómo probarlo
 
-Por eso el código de `mapa.gd` tiene mensajes `print()` en los puntos
-clave (arranque, cada zoom). Corriendo el proyecto desde la terminal (no
-solo con F5 en el editor) esos mensajes aparecen directo en la consola
-donde lo lanzaste — es la forma más rápida de que el agente vea qué pasó
-sin tener que adivinar.
+1. Abrir `godot/project.godot` con Godot 4.x (NO la raíz del repo).
+2. F5 / Play. Arranca en `escenas/Mundo.tscn`.
+3. Mover con flechas del teclado, o D-pad, o stick izquierdo de un control
+   (PS o Xbox — funciona de fábrica, sin configurar nada).
 
-## Cómo probarlo
+### Qué mirar, concretamente
 
-1. Instalar Godot 4.x (cualquier versión 4.3 o más nueva debería abrir
-   esto sin problema — bajar la última estable de godotengine.org).
-2. Abrir este proyecto apuntando a `godot/project.godot` (NO a la raíz
-   del repo — `godot/` es la raíz del proyecto Godot).
-3. F5 o "Play" — arranca en `escenas/Mapa.tscn`, un único diorama.
-4. Controles: WASD o flechas (o stick/D-pad de un control) mueven al
-   personaje (cápsula gris) directamente sobre el relieve del mapa — no
-   hay una cámara separada que pasear ni una escena distinta a la que
-   "entrar". La cámara es isométrica fija y sigue al personaje sin girar.
+- **¿El paso se siente discreto?** Tiene que sentirse como saltar de
+  casilla a casilla, nunca como deslizarse. Si resbala, algo está mal.
+- **¿Tiene peso?** Sale rápido y aterriza suave (ease-out cúbico), con un
+  arquito vertical. ¿Se siente bien, o se siente plano/flojo?
+- **¿Los controles responden al pulsar rápido?** Un empujón que llega
+  mientras el paso anterior todavía anima **no se descarta**: queda en
+  cola y sale apenas termina el anterior.
+- **¿El control anda sin configurar nada?** Es requisito duro.
 
-## Qué es real y qué es placeholder
+### ⚠️ Decisión a evaluar: un paso por empujón
 
-- **Mecánica real, funcionando (a falta de que RR la pruebe):** un solo
-  mundo 3D con relieve — plataformas a distinta altura, no un plano — que
-  representan ciudad/playa/bosque/luna/otro-planeta. El personaje camina
-  con gravedad y colisión sobre ellas; la cámara isométrica lo sigue con
-  un offset fijo (nunca gira, nunca hace zoom manual). "El cometa"
-  (burdeo.json: "atraviesa el mapa entero en vez de ocupar un lugar") es
-  un elemento sin colisión que cruza el cielo del diorama.
-  Ciudad/playa/bosque están al mismo nivel y conectadas — se puede
-  caminar de una a otra ya mismo, como dice el lore ("conectada dentro
-  del mismo mapa"). Luna y otro-planeta son islas elevadas, visibles pero
-  **no alcanzables todavía a pie** — ese vacío es intencional, ver
-  "Qué falta a propósito" abajo.
-- **Placeholder deliberado, no arte final:** todo es gris neutro (cajas,
-  cápsula). Es la misma regla que ya rige en `src/theme/` — la identidad
-  visual (paleta, formas, estilo) la define RR, el agente no elige
-  colores. Dato curioso: `src/story/burdeo.json` ya etiqueta cada zona
-  con un color de intención (`ciudad: "burdeo"`, `luna: "blanco"`,
-  `otro-planeta: "celeste"`) — es una pista de diseño, no una decisión
-  tomada; convertir eso en colores reales sigue siendo tarea de RR.
-- **Datos de zonas hardcodeados, no leídos de ningún lado:** las 5 zonas
-  (`mapa.gd`, constante `ZONAS`) son una copia mínima a mano de
-  `src/story/burdeo.json` → `zonas` (id + título + posición/tamaño de
-  plataforma inventados para que se vea algo). No hay ningún mecanismo
-  que lea el JSON real.
-- **Sin export web todavía.** Falta configurar `export_presets.cfg` y
-  descargar las plantillas de export de Godot (se hace una vez desde el
-  editor, Proyecto → Exportar). No se armó ahora para no dejar una
-  configuración a medias sin poder probarla.
+**Mantener apretado NO camina solo.** Hay que soltar y volver a empujar
+por cada paso — y con el stick, hay que devolverlo a la zona muerta.
 
-## Qué falta a propósito (siguiente paso, no este)
+Está implementado así porque `DISENO_GODOT.md` §3 lo dice literal (*"el
+stick da UN paso por empujón, no un chorro continuo"*), pero puede que en
+la mano se sienta tedioso. **Es exactamente el tipo de cosa que esta etapa
+existe para detectar.** Si molesta, decilo: cambiarlo a "mantener apretado
+camina" es una línea (`is_action_just_pressed` → `is_action_pressed`).
 
-El diseño real de `src/mundo/` (proyeccion.js + navegacion.js +
-nivel.json) no es solo "terreno con relieve" — es un acertijo: el mundo
-se rota en pasos de 90° y eso cambia qué celdas se ven "pegadas" en
-pantalla, lo que abre caminos que no existen en otra rotación. Ese
-mecanismo es justo lo que va a conectar luna/otro-planeta con el resto
-sin necesidad de una rampa literal. Portarlo es la razón de ser de este
-diorama, pero es un paso aparte — se decidió a propósito no meterlo en
-la misma pasada que armó el relieve 3D, para no dejar dos cosas grandes
-a medio verificar al mismo tiempo.
+### Números para tocar
 
-## Qué NO se tocó
+Están arriba de todo en `scripts/personaje.gd`, juntos a propósito:
 
-`src/` (Three.js), `.github/workflows/deploy.yml` y todo lo que compila y
-publica en `https://aloesativo.github.io/enterrario-aloesativo/` sigue
-exactamente igual. Este prototipo no está conectado a Pages.
+| Constante | Hoy | Qué hace |
+|---|---|---|
+| `DURACION_PASO` | `0.16` s | cuánto dura el paso |
+| `ALTURA_ARCO` | `0.12` | cuánto se levanta a mitad de paso |
 
-## Próximos pasos posibles (sin decidir todavía)
+> ⚠️ **No hagas el paso lento para darle peso.** `DISENO_GODOT.md` §6: el
+> peso va en la textura del paso (arco, aterrizaje, sonido), nunca en la
+> duración. Un paso lento vuelve tedioso probar rotaciones, y probar
+> rotaciones es el core del juego.
 
-- Que RR confirme que esto abre y corre en su máquina.
-- Portar el acertijo de rotación/ambigüedad isométrica de `src/mundo/`
-  (ver sección de arriba) — es lo que conecta luna/otro-planeta al resto.
-- Diferenciar las 5 zonas entre sí (hoy son el mismo placeholder gris
-  repetido) — depende de que RR defina identidad visual, no del agente.
-- Decidir cómo se conecta esto con `src/story/burdeo.json` sin romper la
-  regla de "sin integración técnica automática" que rige entre
-  `Aloesativo/Aloesativo` y este repo — probablemente una copia curada a
-  mano, igual que ya existe.
-- Configurar el export web y, recién ahí, evaluar reemplazar el workflow
-  de deploy.
+## Qué NO está, a propósito
+
+Rotación del mundo, relieve/alturas, el estereograma, el zoom-cuerda, el
+tilt-shift, las zonas del lore, el cometa, sonido, arte. **Todo eso son
+etapas 2 a 7** (`DISENO_GODOT.md` §10) y meterlas ahora sería repetir el
+error que ya rompió dos prototipos: construir mucho de una vez sin poder
+verificar nada.
+
+## La regla que no se rompe
+
+`scripts/personaje.gd` **no** es un `CharacterBody3D`, **no** usa
+`move_and_slide()`, **no** tiene gravedad ni velocidad continua. El estado
+del personaje es una celda entera (`Vector2i`).
+
+No es preferencia de estilo: la regla del juego ("puedes pisar lo que se
+ve pegado a ti", etapa 4) compara posiciones en pantalla buscando igualdad
+**exacta**, y con posiciones continuas esa igualdad no ocurre nunca. Ver
+`DISENO_GODOT.md` §3 — es la causa raíz del último prototipo roto.
+
+Lo que sí es continuo es la **animación**. Lo discreto es el estado.
+
+## Si algo falla
+
+El agente **no puede correr Godot** (`DISENO_GODOT.md` §11) — esto se
+escribió leyendo, sin ejecutar. Si tira un error:
+
+**copiar el mensaje de la terminal tal cual, sin resumirlo.**
+
+Hay `print()` de diagnóstico al arrancar; corriendo el proyecto desde la
+terminal aparecen directo en la consola.
+
+## Archivos
+
+```
+project.godot           escena principal: escenas/Mundo.tscn
+escenas/Mundo.tscn      raíz + cámara + sol (lo demás se construye por código)
+scripts/mundo.gd        arma la grilla, el personaje y la cámara; lee la entrada
+scripts/personaje.gd    LA REGLA: movimiento por celdas discretas
+```
+
+## Sobre la cámara (nota de alcance)
+
+La cámara ya está en el ángulo isométrico **verdadero** (elevación
+35.264°, azimut 45°), aunque eso pertenece formalmente a la etapa 2. Se
+adelantó porque Godot necesita alguna cámara para que se vea algo, y
+poner el ángulo correcto no costaba nada y evita rehacer.
+
+Sale solo de poner la cámara en `centro + (k, k, k)` mirando al centro: la
+dirección de vista queda `(-1,-1,-1)/√3`, o sea `asin(1/√3) = 35.264°`. No
+hay ningún ángulo escrito a mano.
+
+Lo que **sí** queda para la etapa 2 es la matemática de proyección
+(`proyeccion.js`), que es lo que de verdad define esa etapa.
