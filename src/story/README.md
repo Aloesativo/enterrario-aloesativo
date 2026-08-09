@@ -46,6 +46,16 @@ color, nunca el valor**. `story/` declara que la ciudad se lee en
 guion sigue siendo verdad aunque cambie la identidad visual, y la
 identidad sigue siendo reemplazable sin tocar el guion.
 
+## Actualización (2026-08-09) — personajes y localidades
+
+El lore madre creció con cuatro notas nuevas, todas `estado: borrador`:
+`tres-planos-burdeo`, `cabeza-hueca`, `archivista-de-burdeo` y
+`conejo-pasta-music` (los tres personajes son el mismo ser en tres
+épocas de Burdeo), más `nomenclatura-localidades` (RR deja explícitamente
+sin resolver cómo se van a llamar las zonas del mapa). Se sumaron a
+`burdeo.json` como `personajes` y `problemasAbiertos`, con los mismos
+`_pendiente` que trae el lore — ninguno de esos vacíos se completó acá.
+
 ## Qué está pendiente
 
 El propio lore avisa (`cronologia-canciones.md`) que hoy esa tabla es
