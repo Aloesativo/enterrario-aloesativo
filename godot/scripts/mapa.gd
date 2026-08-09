@@ -7,11 +7,11 @@ extends Node3D
 ## eso queda pendiente, ver godot/README.md.
 
 const ZONAS := [
-	{"id": "ciudad", "titulo": "Burdeo (ciudad)", "pos": Vector3(0, 0, 0)},
-	{"id": "playa", "titulo": "Playa / costas", "pos": Vector3(-6, 0, 3)},
-	{"id": "bosque", "titulo": "Bosque místico", "pos": Vector3(6, 0, 3)},
-	{"id": "luna", "titulo": "Luna de Burdeo", "pos": Vector3(-4, 0, -6)},
-	{"id": "otro-planeta", "titulo": "Otro planeta", "pos": Vector3(4, 0, -6)},
+	{"id": "ciudad", "titulo": "Burdeo (ciudad)", "pos": Vector3(0, 0, 0), "escena": "res://escenas/Ciudad.tscn"},
+	{"id": "playa", "titulo": "Playa / costas", "pos": Vector3(-6, 0, 3), "escena": "res://escenas/Playa.tscn"},
+	{"id": "bosque", "titulo": "Bosque místico", "pos": Vector3(6, 0, 3), "escena": "res://escenas/Bosque.tscn"},
+	{"id": "luna", "titulo": "Luna de Burdeo", "pos": Vector3(-4, 0, -6), "escena": "res://escenas/Luna.tscn"},
+	{"id": "otro-planeta", "titulo": "Otro planeta", "pos": Vector3(4, 0, -6), "escena": "res://escenas/OtroPlaneta.tscn"},
 ]
 
 const ZOOM_MIN := 3.0
@@ -19,7 +19,6 @@ const ZOOM_MAX := 20.0
 const ZOOM_PASO := 1.0
 const ZOOM_UMBRAL_CIUDAD := 4.0 # tamaño de cámara por debajo del cual "entrás" a una zona
 const VELOCIDAD_PAN := 8.0
-const ESCENA_CIUDAD := "res://escenas/Ciudad.tscn"
 
 @onready var _camara: Camera3D = $Camara3D
 
@@ -80,8 +79,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _acercar() -> void:
 	_zoom = max(ZOOM_MIN, _zoom - ZOOM_PASO)
-	if _zoom <= ZOOM_UMBRAL_CIUDAD and _zona_mas_cercana() == "ciudad":
-		get_tree().change_scene_to_file(ESCENA_CIUDAD)
+	if _zoom <= ZOOM_UMBRAL_CIUDAD:
+		var escena := _escena_de(_zona_mas_cercana())
+		if escena != "":
+			get_tree().change_scene_to_file(escena)
 
 func _alejar() -> void:
 	_zoom = min(ZOOM_MAX, _zoom + ZOOM_PASO)
@@ -101,3 +102,9 @@ func _zona_mas_cercana() -> String:
 				mejor_dist = dist
 				mejor_id = String(hijo.get_meta("zona_id"))
 	return mejor_id
+
+func _escena_de(zona_id: String) -> String:
+	for zona in ZONAS:
+		if zona["id"] == zona_id:
+			return zona.get("escena", "")
+	return ""

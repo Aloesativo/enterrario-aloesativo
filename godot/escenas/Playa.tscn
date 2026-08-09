@@ -23,7 +23,7 @@ height = 1.8
 [sub_resource type="StandardMaterial3D" id="6"]
 albedo_color = Color(0.75, 0.75, 0.8, 1)
 
-[node name="Ciudad" type="Node3D"]
+[node name="Playa" type="Node3D"]
 script = ExtResource("1")
 
 [node name="Camara3D" type="Camera3D" parent="."]
