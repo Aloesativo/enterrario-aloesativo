@@ -1,5 +1,7 @@
 extends Node3D
-## Escena "plano de ciudad": cámara isométrica siguiendo al personaje.
+## Esqueleto genérico de zona jugable: cámara isométrica siguiendo al
+## personaje. Lo reusan Ciudad, Playa, Bosque, Luna y OtroPlaneta — todas
+## son el mismo placeholder (piso gris + cápsula gris), ver godot/README.md.
 
 const OFFSET := Vector3(0, 10, 10)
 

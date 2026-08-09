@@ -35,16 +35,20 @@ no puede adivinar el error sin verlo.
 3. F5 o "Play" — arranca en `escenas/Mapa.tscn`.
 4. Controles del mapa: WASD o flechas (o stick/D-pad de un control) para
    moverse por el mapa; rueda del mouse o `+`/`-` para hacer zoom. Al
-   acercar el zoom sobre el marcador "Burdeo (ciudad)" pasa a
-   `escenas/Ciudad.tscn`.
-5. En Ciudad: un personaje (cápsula gris) se mueve con los mismos
-   controles.
+   acercar el zoom sobre cualquiera de los 5 marcadores (ciudad, playa,
+   bosque, luna, otro planeta) se entra a su escena.
+5. En cada zona: un personaje (cápsula gris) se mueve con los mismos
+   controles, sobre un piso gris igual de placeholder en las cinco.
 
 ## Qué es real y qué es placeholder
 
 - **Mecánica real, funcionando (a falta de que RR la pruebe):** el pan y
-  zoom del mapa, la transición de escena al acercar zoom a una zona, el
-  movimiento del personaje con gravedad y colisión contra el piso.
+  zoom del mapa, la transición de escena al acercar zoom a cualquiera de
+  las 5 zonas, el movimiento del personaje con gravedad y colisión contra
+  el piso. Las 5 escenas de zona (`Ciudad`, `Playa`, `Bosque`, `Luna`,
+  `OtroPlaneta`) comparten un mismo script genérico (`scripts/escenario.gd`)
+  en vez de repetir la lógica de cámara — son idénticas a propósito, todavía
+  no hay nada que las distinga entre sí más que el nombre.
 - **Placeholder deliberado, no arte final:** todo es gris neutro (cajas,
   cápsula, piso). Es la misma regla que ya rige en `src/theme/` — la
   identidad visual (paleta, formas, estilo) la define RR, el agente no
@@ -57,9 +61,6 @@ no puede adivinar el error sin verlo.
   lea el JSON real — construir eso (o una copia paralela versionada a
   mano, siguiendo la misma disciplina que ya usa `src/story/`) queda
   pendiente.
-- **Solo la zona "ciudad" dispara la transición.** Las otras 4 zonas
-  (playa, bosque, luna, otro-planeta) están dibujadas pero no llevan a
-  ninguna escena todavía — no existe esa escena.
 - **Sin export web todavía.** Falta configurar `export_presets.cfg` y
   descargar las plantillas de export de Godot (se hace una vez desde el
   editor, Proyecto → Exportar). No se armó ahora para no dejar una
@@ -74,8 +75,8 @@ exactamente igual. Este prototipo no está conectado a Pages.
 ## Próximos pasos posibles (sin decidir todavía)
 
 - Que RR confirme que esto abre y corre en su máquina.
-- Sumar las otras 4 zonas con su propia escena (aunque sea un esqueleto
-  igual de mínimo que "Ciudad").
+- Diferenciar las 5 zonas entre sí (hoy son el mismo placeholder gris
+  repetido) — depende de que RR defina identidad visual, no del agente.
 - Decidir cómo se conecta esto con `src/story/burdeo.json` sin romper la
   regla de "sin integración técnica automática" que rige entre
   `Aloesativo/Aloesativo` y este repo — probablemente una copia curada a
