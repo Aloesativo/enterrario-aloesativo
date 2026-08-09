@@ -116,6 +116,54 @@ Godot en este entorno (ver limitación arriba). Si RR prueba esto y el
 bug persiste o cambia de forma, copiar el mensaje de la terminal tal
 cual, no resumirlo.
 
+**Superado por el pivote de abajo ("Diorama unificado"):** el modelo de
+5 escenas separadas + `escenario.gd` que este bug describe ya no existe
+— se reemplazó por un único mundo, así que "volver al mapa" dejó de
+tener sentido como mecánica (no hay a dónde volver, ya estás ahí). Se
+deja esta entrada como historial de por qué el diseño cambió.
+
+## Diorama unificado: se retiran las 5 escenas de zona (2026-08-09)
+RR probó el fix de arriba y confirmó que andaba, pero al pedir el
+siguiente paso quedó claro que el modelo de fondo estaba mal: "hay que
+recuperar lo que existía antes, donde había un personaje... el mapa no
+tiene que ser un plano, es tridimensional, con vista fija, y tiene que
+dejar ver la ciudad, el cometa, la luna, la playa". Señal concreta de
+que algo estaba desalineado: RR mencionó "el cometa" como zona y esa
+zona **no existía** en `mapa.gd` (sí existe en `src/story/burdeo.json`).
+
+Diagnóstico: `godot/` nunca se construyó a partir del diseño ya validado
+de `src/mundo/` (proyeccion.js + navegacion.js + nivel.json — islas con
+relieve real, cámara isométrica fija, personaje que camina y descubre).
+Se inventó en su lugar un mecanismo distinto y más simple (mapa plano +
+zoom que teletransporta a una escena aparte) — dos diseños de juego
+conviviendo en el repo sin que nadie lo hubiera notado. Ver INFORME.md
+para el diseño original completo.
+
+RR eligió explícitamente el alcance para retomar esto: portar el
+diorama 3D con relieve real + cámara fija + personaje visible, **sin**
+todavía el acertijo de rotación/ambigüedad isométrica (eso queda para
+un paso siguiente, a propósito). Se reescribió `mapa.gd` para plantar
+las 5 zonas como plataformas a distinta altura (no cajas sobre un
+plano), agregar el personaje directamente al diorama (ya no vive en una
+escena aparte), y una cámara isométrica fija que lo sigue sin zoom
+manual ni pan independiente. Se agregó "el cometa" como elemento del
+cielo sin colisión, tal como lo describe el lore ("atraviesa el mapa
+entero en vez de ocupar un lugar"). Se borraron `escenario.gd` y las 5
+escenas de zona (`Ciudad.tscn`, `Playa.tscn`, `Bosque.tscn`, `Luna.tscn`,
+`OtroPlaneta.tscn`) por quedar sin uso — el diorama entero es ahora
+`escenas/Mapa.tscn`. Ver `godot/README.md` para el detalle de qué
+conecta a pie hoy (ciudad/playa/bosque) y qué queda como isla elevada
+visible pero inalcanzable a propósito (luna/otro-planeta), hasta que se
+porte el acertijo de rotación.
+
+**Lección para no repetir esto:** cuando este repo tiene un diseño ya
+validado en otra capa (acá, `src/mundo/` + `INFORME.md`), un prototipo
+nuevo en otra tecnología tiene que partir de ESE diseño, no improvisar
+uno más simple porque es más rápido de escribir. Si hay una razón real
+para simplificar (como acá, dejar el acertijo para después), documentarla
+explícitamente como alcance reducido — no dejar que parezca el diseño
+final por omisión.
+
 ## Ramas duplicadas/conflictivas — limpieza (2026-08-09)
 Se encontraron 6 ramas de sesiones anteriores en el remoto cuyo contenido
 ya estaba integrado a `main` (mismas ideas, distinto commit — sesiones

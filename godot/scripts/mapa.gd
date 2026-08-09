@@ -1,125 +1,144 @@
 extends Node3D
-## Mapa/zoom del diorama de Burdeo — esqueleto mínimo (ver godot/README.md).
+## El diorama de Burdeo: un único mundo 3D con relieve real (plataformas a
+## distinta altura, no un plano) que el personaje recorre caminando, visto
+## desde una cámara isométrica fija que lo sigue. Reemplaza el mapa plano +
+## "zoom para teletransportarte a otra escena" que había antes — ver
+## CLAUDE.md ("Diorama unificado") para el porqué del cambio, y
+## godot/README.md para qué falta.
 ##
-## Datos de zonas: copia mínima y a mano de src/story/burdeo.json ("zonas"),
-## solo id + título + una posición de layout provisional para que la
-## mecánica se pueda ver funcionando. No es una lectura real del JSON —
-## eso queda pendiente, ver godot/README.md.
+## Todavía NO tiene el acertijo de rotación/ambigüedad isométrica de
+## src/mundo/proyeccion.js — eso es a propósito el siguiente paso, no este.
+## Por eso ciudad/playa/bosque están conectadas a nivel de suelo (caminables
+## ya mismo, como dice burdeo.json: "conectada dentro del mismo mapa"), pero
+## luna/otro-planeta quedan como islas elevadas visibles y NO alcanzables
+## todavía — ese vacío es justo lo que la rotación va a resolver después.
 
+const PERSONAJE_SCRIPT := preload("res://scripts/personaje.gd")
+
+const OFFSET_CAMARA := Vector3(0, 16, 16)
+const TAMANO_CAMARA := 20.0
+
+## Copia mínima y a mano de src/story/burdeo.json -> "zonas": solo lo
+## necesario para plantar el relieve (id + título + posición/tamaño de la
+## plataforma). No es una lectura real del JSON — ver godot/README.md.
 const ZONAS := [
-	{"id": "ciudad", "titulo": "Burdeo (ciudad)", "pos": Vector3(0, 0, 0), "escena": "res://escenas/Ciudad.tscn"},
-	{"id": "playa", "titulo": "Playa / costas", "pos": Vector3(-6, 0, 3), "escena": "res://escenas/Playa.tscn"},
-	{"id": "bosque", "titulo": "Bosque místico", "pos": Vector3(6, 0, 3), "escena": "res://escenas/Bosque.tscn"},
-	{"id": "luna", "titulo": "Luna de Burdeo", "pos": Vector3(-4, 0, -6), "escena": "res://escenas/Luna.tscn"},
-	{"id": "otro-planeta", "titulo": "Otro planeta", "pos": Vector3(4, 0, -6), "escena": "res://escenas/OtroPlaneta.tscn"},
+	{"id": "ciudad", "titulo": "Burdeo (ciudad)", "pos": Vector3(0, 0, 0), "tamano": Vector3(14, 1, 14)},
+	{"id": "playa", "titulo": "Playa / costas", "pos": Vector3(-13, 0, 9), "tamano": Vector3(10, 1, 10)},
+	{"id": "bosque", "titulo": "Bosque místico", "pos": Vector3(13, 0, 9), "tamano": Vector3(10, 1, 10)},
+	{"id": "luna", "titulo": "Luna de Burdeo", "pos": Vector3(-11, 9, -17), "tamano": Vector3(7, 1, 7)},
+	{"id": "otro-planeta", "titulo": "Otro planeta", "pos": Vector3(11, 11, -19), "tamano": Vector3(7, 1, 7)},
 ]
 
-const ZOOM_MIN := 3.0
-const ZOOM_MAX := 20.0
-const ZOOM_PASO := 1.0
-const ZOOM_UMBRAL_CIUDAD := 4.0 # tamaño de cámara por debajo del cual "entrás" a una zona
-const VELOCIDAD_PAN := 8.0
+## "cometa" (burdeo.json): no es una plataforma, es algo que "atraviesa el
+## mapa entero en vez de ocupar un lugar" — un elemento del cielo que cruza
+## el diorama, sin colisión.
+const COMETA_ALTURA := 24.0
+const COMETA_RADIO := 42.0
+const COMETA_VELOCIDAD := 0.06
 
-@onready var _camara: Camera3D = $Camara3D
-
-var _zoom := 12.0
-var _objetivo := Vector3.ZERO
-var _cambiando_escena := false # evita disparar change_scene_to_file dos veces si llegan varios "clics" de rueda seguidos
+var _camara: Camera3D
+var _personaje: CharacterBody3D
+var _cometa: MeshInstance3D
+var _tiempo := 0.0
 
 func _ready() -> void:
-	_camara.projection = Camera3D.PROJECTION_ORTHOGONAL
 	for zona in ZONAS:
-		_crear_marcador(zona)
+		_crear_plataforma(zona)
+	_crear_personaje()
+	_crear_cometa()
+	_crear_camara()
 	_actualizar_camara()
-	print("[mapa] listo — zoom inicial=%.1f, umbral de entrada=%.1f" % [_zoom, ZOOM_UMBRAL_CIUDAD])
+	print("[mapa] diorama listo — %d zonas plantadas, personaje en %s" % [ZONAS.size(), _personaje.position])
 
-func _crear_marcador(zona: Dictionary) -> void:
-	var raiz := Node3D.new()
+func _crear_plataforma(zona: Dictionary) -> void:
+	var raiz := StaticBody3D.new()
 	raiz.name = "Zona_" + String(zona["id"]).replace("-", "_")
-	raiz.position = zona["pos"]
-	raiz.set_meta("zona_id", zona["id"])
 	add_child(raiz)
 
-	var caja := MeshInstance3D.new()
-	var malla := BoxMesh.new()
-	malla.size = Vector3(1.5, 1.0, 1.5)
-	caja.mesh = malla
+	var malla := MeshInstance3D.new()
+	var caja := BoxMesh.new()
+	caja.size = zona["tamano"]
+	malla.mesh = caja
 	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.55, 0.55, 0.55) # gris neutro — placeholder, la paleta la define RR
-	caja.material_override = material
-	raiz.add_child(caja)
+	material.albedo_color = Color(0.5, 0.5, 0.5) # gris neutro — placeholder, la paleta la define RR
+	malla.material_override = material
+	malla.position = zona["pos"]
+	raiz.add_child(malla)
+
+	var colision := CollisionShape3D.new()
+	var forma := BoxShape3D.new()
+	forma.size = zona["tamano"]
+	colision.shape = forma
+	colision.position = zona["pos"]
+	raiz.add_child(colision)
 
 	var etiqueta := Label3D.new()
 	etiqueta.text = zona["titulo"]
-	etiqueta.position = Vector3(0, 1.3, 0)
+	etiqueta.position = zona["pos"] + Vector3(0, zona["tamano"].y / 2.0 + 1.5, 0)
 	etiqueta.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	raiz.add_child(etiqueta)
 
-func _process(delta: float) -> void:
-	var mover := _vector_movimiento()
-	_objetivo += Vector3(mover.x, 0, mover.y) * VELOCIDAD_PAN * delta
-	_actualizar_camara()
+func _crear_personaje() -> void:
+	_personaje = CharacterBody3D.new()
+	_personaje.name = "Personaje"
+	_personaje.set_script(PERSONAJE_SCRIPT)
+	_personaje.position = _posicion_de("ciudad") + Vector3(0, 1.5, 0)
+	add_child(_personaje)
 
-func _vector_movimiento() -> Vector2:
-	var v := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
-	if v == Vector2.ZERO:
-		v.x = float(Input.is_key_pressed(KEY_D)) - float(Input.is_key_pressed(KEY_A))
-		v.y = float(Input.is_key_pressed(KEY_S)) - float(Input.is_key_pressed(KEY_W))
-	return v
+	var malla := MeshInstance3D.new()
+	var capsula := CapsuleMesh.new()
+	capsula.radius = 0.5
+	capsula.height = 1.8
+	malla.mesh = capsula
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.75, 0.75, 0.8)
+	malla.material_override = material
+	_personaje.add_child(malla)
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed:
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_acercar()
-		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_alejar()
-	elif event is InputEventKey and event.pressed:
-		if event.keycode == KEY_EQUAL or event.keycode == KEY_KP_ADD:
-			_acercar()
-		elif event.keycode == KEY_MINUS or event.keycode == KEY_KP_SUBTRACT:
-			_alejar()
+	var colision := CollisionShape3D.new()
+	var forma := CapsuleShape3D.new()
+	forma.radius = 0.5
+	forma.height = 1.8
+	colision.shape = forma
+	_personaje.add_child(colision)
 
-func _acercar() -> void:
-	if _cambiando_escena:
-		return
-	_zoom = max(ZOOM_MIN, _zoom - ZOOM_PASO)
-	print("[mapa] zoom -> %.1f (objetivo %s)" % [_zoom, _objetivo])
-	if _zoom <= ZOOM_UMBRAL_CIUDAD:
-		var zona_id := _zona_mas_cercana()
-		var escena := _escena_de(zona_id)
-		print("[mapa] bajo el umbral — zona más cercana: '%s', escena: '%s'" % [zona_id, escena])
-		if escena == "":
-			push_warning("[mapa] la zona '%s' no tiene escena asignada" % zona_id)
-		else:
-			_cambiando_escena = true
-			var error := get_tree().change_scene_to_file(escena)
-			if error != OK:
-				push_error("[mapa] change_scene_to_file('%s') falló con código %d" % [escena, error])
-				_cambiando_escena = false
-			else:
-				print("[mapa] cambiando a %s" % escena)
+func _crear_cometa() -> void:
+	_cometa = MeshInstance3D.new()
+	var esfera := SphereMesh.new()
+	esfera.radius = 1.2
+	esfera.height = 2.4
+	_cometa.mesh = esfera
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.85, 0.85, 0.9)
+	material.emission_enabled = true
+	material.emission = Color(0.85, 0.85, 0.9)
+	_cometa.material_override = material
+	add_child(_cometa)
 
-func _alejar() -> void:
-	_zoom = min(ZOOM_MAX, _zoom + ZOOM_PASO)
+func _crear_camara() -> void:
+	_camara = Camera3D.new()
+	_camara.projection = Camera3D.PROJECTION_ORTHOGONAL
+	_camara.size = TAMANO_CAMARA
+	_camara.current = true
+	add_child(_camara)
 
-func _actualizar_camara() -> void:
-	_camara.size = _zoom
-	_camara.position = _objetivo + Vector3(0, 12, 12)
-	_camara.look_at(_objetivo, Vector3.UP)
-
-func _zona_mas_cercana() -> String:
-	var mejor_id := ""
-	var mejor_dist := INF
-	for hijo in get_children():
-		if hijo.has_meta("zona_id"):
-			var dist: float = hijo.position.distance_to(_objetivo)
-			if dist < mejor_dist:
-				mejor_dist = dist
-				mejor_id = String(hijo.get_meta("zona_id"))
-	return mejor_id
-
-func _escena_de(zona_id: String) -> String:
+func _posicion_de(zona_id: String) -> Vector3:
 	for zona in ZONAS:
 		if zona["id"] == zona_id:
-			return zona.get("escena", "")
-	return ""
+			return zona["pos"]
+	return Vector3.ZERO
+
+func _process(delta: float) -> void:
+	_tiempo += delta
+	_actualizar_camara()
+	_actualizar_cometa()
+
+func _actualizar_camara() -> void:
+	if _personaje == null:
+		return
+	_camara.position = _personaje.position + OFFSET_CAMARA
+	_camara.look_at(_personaje.position, Vector3.UP)
+
+func _actualizar_cometa() -> void:
+	var angulo := _tiempo * COMETA_VELOCIDAD
+	_cometa.position = Vector3(cos(angulo) * COMETA_RADIO, COMETA_ALTURA, sin(angulo) * COMETA_RADIO - 10.0)
