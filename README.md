@@ -161,6 +161,16 @@ Cuando se decida cómo mapear canciones concretas a revelaciones concretas
 del nuevo sistema, ese archivo es el punto de partida — pero como fuente
 de datos, no como mecánica a restaurar.
 
+## Ideas de diseño sin construir
+
+`IDEAS_DISENO.md` junta las notas de diseño de juego que RR dejó en el repo
+madre (mapa-zoom, personaje punto de vista, capa de plantas, oráculo/
+digivice, streaming externo) y que se migraron acá el 2026-08-09 por ser
+diseño de producto/juego, no lore. Describen una mecánica bastante más
+grande que el acertijo isométrico actual — no es un roadmap ni algo
+priorizado, es material de referencia para cuando RR decida qué construir
+después.
+
 ## El camino hacia el diorama autorado
 
 La generación procedural resuelve "necesito contenido infinito y barato".
