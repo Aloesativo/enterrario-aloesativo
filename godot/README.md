@@ -26,12 +26,11 @@ de RR, corriendo esto en su máquina.** Si algo no carga o tira un error,
 copiá el mensaje tal cual aparece en la terminal (no lo resumas) — con
 eso el agente lo corrige, no puede adivinar el error sin verlo.
 
-Por eso el código de `mapa.gd` y `escenario.gd` tiene mensajes `print()`
-en los puntos clave (arranque, cada zoom, cada intento de cambiar de
-escena). Corriendo el proyecto desde la terminal (no solo con F5 en el
-editor) esos mensajes aparecen directo en la consola donde lo lanzaste —
-es la forma más rápida de que el agente vea qué pasó sin tener que
-adivinar.
+Por eso el código de `mapa.gd` tiene mensajes `print()` en los puntos
+clave (arranque, cada zoom). Corriendo el proyecto desde la terminal (no
+solo con F5 en el editor) esos mensajes aparecen directo en la consola
+donde lo lanzaste — es la forma más rápida de que el agente vea qué pasó
+sin tener que adivinar.
 
 ## Cómo probarlo
 
@@ -39,43 +38,54 @@ adivinar.
    esto sin problema — bajar la última estable de godotengine.org).
 2. Abrir este proyecto apuntando a `godot/project.godot` (NO a la raíz
    del repo — `godot/` es la raíz del proyecto Godot).
-3. F5 o "Play" — arranca en `escenas/Mapa.tscn`.
-4. Controles del mapa: WASD o flechas (o stick/D-pad de un control) para
-   moverse por el mapa; rueda del mouse o `+`/`-` para hacer zoom. Al
-   acercar el zoom sobre cualquiera de los 5 marcadores (ciudad, playa,
-   bosque, luna, otro planeta) se entra a su escena.
-5. En cada zona: un personaje (cápsula gris) se mueve con los mismos
-   controles, sobre un piso gris igual de placeholder en las cinco. Para
-   volver al mapa: Escape, botón B/back del control, rueda hacia abajo o
-   `-`.
+3. F5 o "Play" — arranca en `escenas/Mapa.tscn`, un único diorama.
+4. Controles: WASD o flechas (o stick/D-pad de un control) mueven al
+   personaje (cápsula gris) directamente sobre el relieve del mapa — no
+   hay una cámara separada que pasear ni una escena distinta a la que
+   "entrar". La cámara es isométrica fija y sigue al personaje sin girar.
 
 ## Qué es real y qué es placeholder
 
-- **Mecánica real, funcionando (a falta de que RR la pruebe):** el pan y
-  zoom del mapa, la transición de escena al acercar zoom a cualquiera de
-  las 5 zonas, el movimiento del personaje con gravedad y colisión contra
-  el piso, y volver de una zona al mapa (Escape/B del control/rueda abajo/`-`
-  — antes de esto no existía ningún camino de vuelta, era un viaje sin
-  retorno). Las 5 escenas de zona (`Ciudad`, `Playa`, `Bosque`, `Luna`,
-  `OtroPlaneta`) comparten un mismo script genérico (`scripts/escenario.gd`)
-  en vez de repetir la lógica de cámara — son idénticas a propósito, todavía
-  no hay nada que las distinga entre sí más que el nombre.
+- **Mecánica real, funcionando (a falta de que RR la pruebe):** un solo
+  mundo 3D con relieve — plataformas a distinta altura, no un plano — que
+  representan ciudad/playa/bosque/luna/otro-planeta. El personaje camina
+  con gravedad y colisión sobre ellas; la cámara isométrica lo sigue con
+  un offset fijo (nunca gira, nunca hace zoom manual). "El cometa"
+  (burdeo.json: "atraviesa el mapa entero en vez de ocupar un lugar") es
+  un elemento sin colisión que cruza el cielo del diorama.
+  Ciudad/playa/bosque están al mismo nivel y conectadas — se puede
+  caminar de una a otra ya mismo, como dice el lore ("conectada dentro
+  del mismo mapa"). Luna y otro-planeta son islas elevadas, visibles pero
+  **no alcanzables todavía a pie** — ese vacío es intencional, ver
+  "Qué falta a propósito" abajo.
 - **Placeholder deliberado, no arte final:** todo es gris neutro (cajas,
-  cápsula, piso). Es la misma regla que ya rige en `src/theme/` — la
-  identidad visual (paleta, formas, estilo) la define RR, el agente no
-  elige colores. Acá directamente no hay tema todavía: ni siquiera hay
-  una capa `theme/` equivalente en Godot aún.
+  cápsula). Es la misma regla que ya rige en `src/theme/` — la identidad
+  visual (paleta, formas, estilo) la define RR, el agente no elige
+  colores. Dato curioso: `src/story/burdeo.json` ya etiqueta cada zona
+  con un color de intención (`ciudad: "burdeo"`, `luna: "blanco"`,
+  `otro-planeta: "celeste"`) — es una pista de diseño, no una decisión
+  tomada; convertir eso en colores reales sigue siendo tarea de RR.
 - **Datos de zonas hardcodeados, no leídos de ningún lado:** las 5 zonas
-  del mapa (`mapa.gd`, constante `ZONAS`) son una copia mínima a mano de
-  `src/story/burdeo.json` → `zonas` (solo id + título + una posición de
-  layout inventada para que se vea algo). No hay ningún mecanismo que
-  lea el JSON real — construir eso (o una copia paralela versionada a
-  mano, siguiendo la misma disciplina que ya usa `src/story/`) queda
-  pendiente.
+  (`mapa.gd`, constante `ZONAS`) son una copia mínima a mano de
+  `src/story/burdeo.json` → `zonas` (id + título + posición/tamaño de
+  plataforma inventados para que se vea algo). No hay ningún mecanismo
+  que lea el JSON real.
 - **Sin export web todavía.** Falta configurar `export_presets.cfg` y
   descargar las plantillas de export de Godot (se hace una vez desde el
   editor, Proyecto → Exportar). No se armó ahora para no dejar una
   configuración a medias sin poder probarla.
+
+## Qué falta a propósito (siguiente paso, no este)
+
+El diseño real de `src/mundo/` (proyeccion.js + navegacion.js +
+nivel.json) no es solo "terreno con relieve" — es un acertijo: el mundo
+se rota en pasos de 90° y eso cambia qué celdas se ven "pegadas" en
+pantalla, lo que abre caminos que no existen en otra rotación. Ese
+mecanismo es justo lo que va a conectar luna/otro-planeta con el resto
+sin necesidad de una rampa literal. Portarlo es la razón de ser de este
+diorama, pero es un paso aparte — se decidió a propósito no meterlo en
+la misma pasada que armó el relieve 3D, para no dejar dos cosas grandes
+a medio verificar al mismo tiempo.
 
 ## Qué NO se tocó
 
@@ -86,6 +96,8 @@ exactamente igual. Este prototipo no está conectado a Pages.
 ## Próximos pasos posibles (sin decidir todavía)
 
 - Que RR confirme que esto abre y corre en su máquina.
+- Portar el acertijo de rotación/ambigüedad isométrica de `src/mundo/`
+  (ver sección de arriba) — es lo que conecta luna/otro-planeta al resto.
 - Diferenciar las 5 zonas entre sí (hoy son el mismo placeholder gris
   repetido) — depende de que RR defina identidad visual, no del agente.
 - Decidir cómo se conecta esto con `src/story/burdeo.json` sin romper la
