@@ -45,14 +45,18 @@ adivinar.
    acercar el zoom sobre cualquiera de los 5 marcadores (ciudad, playa,
    bosque, luna, otro planeta) se entra a su escena.
 5. En cada zona: un personaje (cápsula gris) se mueve con los mismos
-   controles, sobre un piso gris igual de placeholder en las cinco.
+   controles, sobre un piso gris igual de placeholder en las cinco. Para
+   volver al mapa: Escape, botón B/back del control, rueda hacia abajo o
+   `-`.
 
 ## Qué es real y qué es placeholder
 
 - **Mecánica real, funcionando (a falta de que RR la pruebe):** el pan y
   zoom del mapa, la transición de escena al acercar zoom a cualquiera de
   las 5 zonas, el movimiento del personaje con gravedad y colisión contra
-  el piso. Las 5 escenas de zona (`Ciudad`, `Playa`, `Bosque`, `Luna`,
+  el piso, y volver de una zona al mapa (Escape/B del control/rueda abajo/`-`
+  — antes de esto no existía ningún camino de vuelta, era un viaje sin
+  retorno). Las 5 escenas de zona (`Ciudad`, `Playa`, `Bosque`, `Luna`,
   `OtroPlaneta`) comparten un mismo script genérico (`scripts/escenario.gd`)
   en vez de repetir la lógica de cámara — son idénticas a propósito, todavía
   no hay nada que las distinga entre sí más que el nombre.

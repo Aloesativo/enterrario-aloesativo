@@ -99,6 +99,44 @@ corre esta sesión (descarga bloqueada por política de red del entorno,
 no algo que se pueda evitar). Los `.tscn`/`.gd` de `godot/` se escribieron
 a mano sin poder probarlos — la primera verificación real es la de RR.
 
+## Bug del mapa-zoom sin vuelta atrás (2026-08-09)
+RR probó el prototipo Godot y reportó: el zoom hacia una zona funciona,
+pero una vez adentro "se queda pegado" y no hay forma de volver al mapa.
+Causa real: `escenario.gd` (el script que comparten las 5 escenas de
+zona) nunca tuvo código para volver — no era un bug de estado, era una
+mecánica directamente inexistente, un viaje solo de ida. Se agregó
+`_volver_al_mapa()` con varios disparadores (Escape/`ui_cancel` — que ya
+cubre el botón B de un control por defecto en Godot —, rueda del mouse
+hacia abajo, y `-`/`KP_SUBTRACT`), simétrico a como `mapa.gd` ya entra a
+una zona. Ver `godot/README.md` para los controles actualizados.
+
+**Advertencia para la próxima sesión:** esto se corrigió leyendo el
+código, no corriendo el proyecto — el agente sigue sin poder ejecutar
+Godot en este entorno (ver limitación arriba). Si RR prueba esto y el
+bug persiste o cambia de forma, copiar el mensaje de la terminal tal
+cual, no resumirlo.
+
+## Ramas duplicadas/conflictivas — limpieza (2026-08-09)
+Se encontraron 6 ramas de sesiones anteriores en el remoto cuyo contenido
+ya estaba integrado a `main` (mismas ideas, distinto commit — sesiones
+paralelas que no se enteraron entre sí). Una de ellas (PR #16,
+`claude/godot-dev-workflow-sii48j`) estaba además en conflicto real
+(`mergeable_state: dirty`) contra `main` porque RR había aplicado el
+mismo cambio directo en el editor de Godot. Se cerró ese PR sin fusionar
+y se documentó la razón en el comentario.
+
+**Limitación encontrada:** el agente no tiene forma de borrar ramas en
+este entorno — ni `git push --delete` (403 del proxy) ni las
+herramientas de GitHub disponibles incluyen borrado de rama. Quedan
+colgando (inertes, no van a volver a aparecer como conflicto salvo que
+alguien abra un PR nuevo desde ellas): `claude/controls-config-lore-1zn5te`,
+`claude/diorama-music-albums-q0zoze`, `claude/enterrario-lore-pendiente-9xxdht`,
+`claude/godot-dev-workflow-sii48j`, `claude/lore-migration-godot-prototype-jukiqn`,
+`claude/visual-controls-multidevice-5hpc67`. RR puede borrarlas con un
+clic desde github.com/Aloesativo/enterrario-aloesativo/branches. Si una
+próxima sesión tiene una herramienta de borrado disponible, puede
+hacerlo directamente — ya están verificadas como seguras de borrar.
+
 ## Cómo verificar cambios visuales sin instalar nada (2026-07-31)
 `npm run build` solo prueba que compila, no que se vea. Para validar de
 verdad hay un script de humo con Playwright (Chromium ya viene en el
