@@ -1,12 +1,16 @@
 extends Node3D
-## ETAPA 1 del plan (ver DISENO_GODOT.md §10): un personaje que camina por
-## celdas sobre una grilla plana. Sin relieve, sin rotación, sin arte.
+## ETAPAS 1-2 del plan (ver DISENO_GODOT.md §10).
 ##
-## Lo único que hay que juzgar acá es CÓMO SE SIENTE EL PASO. Todo lo
-## demás (el estereograma, la rotación, el zoom, el tilt-shift) llega en
-## etapas siguientes y a propósito no está.
+## Etapa 1: un personaje que camina por celdas sobre una grilla plana.
+## Etapa 2: la cámara isométrica fija, que sigue al personaje SIN GIRAR.
+##
+## Sin relieve, sin rotación del mundo, sin zoom, sin arte — todo eso son
+## etapas 3 en adelante y a propósito no está.
 
-const LADO_GRILLA := 9
+## La grilla es más grande que lo que entra en pantalla, a propósito: si
+## cupiera entera, una cámara que sigue al personaje sería indistinguible
+## de una fija y la etapa 2 no se podría probar.
+const LADO_GRILLA := 21
 
 # El tamaño de celda vive en personaje.gd y se lee de ahí (Personaje.TAM):
 # si estuviera escrito en los dos lados, un día alguien cambia uno y el
@@ -22,9 +26,17 @@ const LADO_GRILLA := 9
 const DISTANCIA_CAMARA := 24.0
 
 ## Alto visible en unidades de mundo (Godot mide `size` sobre el alto).
-## La grilla de 9×9 proyectada ocupa ~6.5 de alto y ~11.3 de ancho; con 12
-## entra entera y con margen en cualquier ventana apaisada.
+## Con 12 se ve una porción de la grilla, no toda: por eso la cámara tiene
+## que seguir al personaje.
 const TAMANO_CAMARA := 12.0
+
+## Suavizado del seguimiento. Más alto = más pegada al personaje.
+##
+## Suavizar es SEGURO para el acertijo, y conviene tenerlo claro: con una
+## cámara ortográfica de rotación fija, mover la cámara NO cambia las
+## posiciones relativas en pantalla entre dos objetos del mundo. Solo
+## rotarla las cambiaría — y la cámara no rota nunca (§4).
+const VELOCIDAD_CAMARA := 9.0
 
 ## Mapeo de teclas a pasos de celda.
 ##
@@ -55,15 +67,16 @@ const DIRECCIONES := {
 @onready var _camara: Camera3D = $Camara
 
 var _personaje: Personaje
+var _offset_camara := Vector3.ZERO
 
 func _ready() -> void:
 	_construir_piso()
 	_construir_personaje()
 	_colocar_camara()
-	print("[mundo] etapa 1 lista — grilla %dx%d, personaje en %s" % [
+	print("[mundo] etapas 1-2 listas — grilla %dx%d, personaje en %s" % [
 		LADO_GRILLA, LADO_GRILLA, _personaje.celda,
 	])
-	print("[mundo] un paso por empujón: mantener apretado NO camina solo (a propósito, ver README)")
+	print("[mundo] cámara isométrica fija: se orienta una vez y ya no gira nunca")
 
 func _construir_piso() -> void:
 	# Damero de dos grises para que cada celda se distinga de la vecina y el
@@ -119,22 +132,47 @@ func _puede_pisar(celda: Vector2i) -> bool:
 	return celda.x >= 0 and celda.x < LADO_GRILLA \
 		and celda.y >= 0 and celda.y < LADO_GRILLA
 
+## La cámara se ORIENTA UNA SOLA VEZ, acá, y después nunca más: en
+## _process solo se le cambia la posición. Así "no gira nunca" queda
+## garantizado por construcción y no por acordarse de no hacerlo.
+##
+## Su rigidez no es pereza: es la condición de que el acertijo se pueda
+## leer (§4). Si la cámara se moviera sola, las alineaciones cambiarían sin
+## que el jugador lo pidiera.
 func _colocar_camara() -> void:
-	var centro := _centro_del_mundo()
+	_offset_camara = Vector3.ONE * DISTANCIA_CAMARA
+
+	var objetivo := _objetivo_camara()
 	_camara.projection = Camera3D.PROJECTION_ORTHOGONAL
 	_camara.size = TAMANO_CAMARA
-	_camara.position = centro + Vector3.ONE * DISTANCIA_CAMARA
-	_camara.look_at(centro, Vector3.UP)
+	_camara.position = objetivo + _offset_camara
+	_camara.look_at(objetivo, Vector3.UP)
 	_camara.current = true
 
-func _centro_del_mundo() -> Vector3:
-	var medio := (LADO_GRILLA - 1) * Personaje.TAM * 0.5
-	return Vector3(medio, 0.0, medio)
+## A dónde mira la cámara: el personaje, pero SOLO en el plano horizontal.
+##
+## Importante: se descarta la altura. Durante el paso, personaje.position.y
+## sube por el arco del salto; si la cámara siguiera eso, cabecearía en
+## cada paso — justo lo que la etapa 2 pide que no pase ("nada la mueve
+## por accidente").
+func _objetivo_camara() -> Vector3:
+	var p := _personaje.position
+	return Vector3(p.x, 0.0, p.z)
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	# is_action_just_pressed da UN disparo por empujón, tanto de tecla como
 	# de stick: el stick tiene que volver a la zona muerta antes de poder
 	# empujar de nuevo. Es literal lo que pide DISENO_GODOT.md §3.
 	for accion in DIRECCIONES:
 		if Input.is_action_just_pressed(accion):
 			_personaje.empujar(DIRECCIONES[accion] as Vector2i)
+
+	_seguir_con_la_camara(delta)
+
+## Solo traslación, nunca rotación. El suavizado usa exp() para que sea
+## independiente de los cuadros por segundo: con un lerp por delta pelado,
+## la cámara se sentiría distinta a 60 y a 144 Hz.
+func _seguir_con_la_camara(delta: float) -> void:
+	var destino := _objetivo_camara() + _offset_camara
+	var factor := 1.0 - exp(-VELOCIDAD_CAMARA * delta)
+	_camara.position = _camara.position.lerp(destino, factor)

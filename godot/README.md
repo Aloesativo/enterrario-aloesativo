@@ -5,12 +5,16 @@
 > que vas a escribir no está en ese documento, no se escribe: se propone,
 > se acuerda, se anota, y recién después se construye.
 
-## Estado: ETAPA 1 — un personaje que camina por celdas
+## Estado: ETAPA 2 — la cámara isométrica fija
 
-Es a propósito lo mínimo posible. Grilla plana de 9×9, un damero gris, una
-cápsula gris que camina. **Nada más.**
+✅ **Etapa 1 verificada por RR:** el personaje camina por celdas discretas.
 
-Lo único que hay que juzgar en esta etapa es **cómo se siente el paso.**
+Ahora la grilla es de 21×21 —más grande que la pantalla, a propósito— y la
+cámara **sigue al personaje sin girar nunca**.
+
+> La grilla creció porque si cupiera entera en pantalla, una cámara que
+> sigue sería indistinguible de una fija, y no habría forma de probar esta
+> etapa.
 
 ### Cómo probarlo
 
@@ -19,16 +23,24 @@ Lo único que hay que juzgar en esta etapa es **cómo se siente el paso.**
 3. Mover con flechas del teclado, o D-pad, o stick izquierdo de un control
    (PS o Xbox — funciona de fábrica, sin configurar nada).
 
-### Qué mirar, concretamente
+### Qué mirar en esta etapa
 
-- **¿El paso se siente discreto?** Tiene que sentirse como saltar de
-  casilla a casilla, nunca como deslizarse. Si resbala, algo está mal.
-- **¿Tiene peso?** Sale rápido y aterriza suave (ease-out cúbico), con un
-  arquito vertical. ¿Se siente bien, o se siente plano/flojo?
-- **¿Los controles responden al pulsar rápido?** Un empujón que llega
-  mientras el paso anterior todavía anima **no se descarta**: queda en
-  cola y sale apenas termina el anterior.
-- **¿El control anda sin configurar nada?** Es requisito duro.
+- **¿La vista se ve plana / 2.5D?** Ese achatamiento es el core del juego
+  (§2): el mundo tiene que parecer casi un dibujo plano. Si se ve con
+  profundidad "de 3D normal", algo está mal.
+- **¿La cámara gira o se inclina alguna vez?** No debería, jamás, por
+  ningún motivo. Si la ves girar, es un bug grave — esa rigidez es la
+  condición de que el acertijo se pueda leer.
+- **¿Cabecea al caminar?** No debería. El personaje sube un arquito en
+  cada paso, pero la cámara ignora la altura a propósito.
+- **¿El seguimiento se siente bien?** Ajustable con `VELOCIDAD_CAMARA` en
+  `scripts/mundo.gd` (hoy `9.0`; más alto = más pegada).
+
+### Sigue valiendo de la etapa 1
+
+- El paso es discreto (de casilla a casilla, nunca deslizándose).
+- Un empujón durante la animación no se descarta: queda en cola.
+- Los controles andan sin configurar nada.
 
 ### ⚠️ Decisión a evaluar: un paso por empujón
 
@@ -59,9 +71,14 @@ Están arriba de todo en `scripts/personaje.gd`, juntos a propósito:
 
 Rotación del mundo, relieve/alturas, el estereograma, el zoom-cuerda, el
 tilt-shift, las zonas del lore, el cometa, sonido, arte. **Todo eso son
-etapas 2 a 7** (`DISENO_GODOT.md` §10) y meterlas ahora sería repetir el
+etapas 3 a 7** (`DISENO_GODOT.md` §10) y meterlas ahora sería repetir el
 error que ya rompió dos prototipos: construir mucho de una vez sin poder
 verificar nada.
+
+**La próxima es la etapa 3:** rotar el mundo 90° exactos con A/D y los
+bumpers, con dos contadores desde el día uno (uno continuo para animar,
+uno módulo 4 para la matemática) — si no, reaparece el bug de girar 270°
+por el camino largo que ya costó caro una vez (§2).
 
 ## La regla que no se rompe
 
@@ -95,16 +112,32 @@ scripts/mundo.gd        arma la grilla, el personaje y la cámara; lee la entrad
 scripts/personaje.gd    LA REGLA: movimiento por celdas discretas
 ```
 
-## Sobre la cámara (nota de alcance)
+> **Nota de rendimiento, para más adelante:** hoy cada celda del piso es un
+> `MeshInstance3D` aparte (21×21 = 441 nodos). A esta escala no importa,
+> pero si la grilla crece mucho, la salida estándar es `MultiMeshInstance3D`
+> (el equivalente en Godot del `InstancedMesh` que menciona `INFORME.md`
+> §9.4). No hace falta todavía.
 
-La cámara ya está en el ángulo isométrico **verdadero** (elevación
-35.264°, azimut 45°), aunque eso pertenece formalmente a la etapa 2. Se
-adelantó porque Godot necesita alguna cámara para que se vea algo, y
-poner el ángulo correcto no costaba nada y evita rehacer.
+## Cómo se garantiza que la cámara no gire
 
-Sale solo de poner la cámara en `centro + (k, k, k)` mirando al centro: la
-dirección de vista queda `(-1,-1,-1)/√3`, o sea `asin(1/√3) = 35.264°`. No
-hay ningún ángulo escrito a mano.
+No por disciplina, **por construcción**: la cámara se orienta una sola vez
+en `_colocar_camara()` (con un `look_at`) y a partir de ahí el código solo
+le cambia la **posición**, nunca la rotación. No hay ninguna línea que
+pueda girarla por accidente.
 
-Lo que **sí** queda para la etapa 2 es la matemática de proyección
-(`proyeccion.js`), que es lo que de verdad define esa etapa.
+El ángulo es el isométrico **verdadero** (elevación 35.264°, azimut 45°),
+y no está escrito a mano: sale solo de poner la cámara en
+`objetivo + (k, k, k)` mirando al objetivo — la dirección de vista queda
+`(-1,-1,-1)/√3`, o sea `asin(1/√3) = 35.264°`.
+
+**Suavizar el seguimiento es seguro para el acertijo.** Con una cámara
+ortográfica de rotación fija, trasladarla no cambia las posiciones
+relativas en pantalla entre dos objetos del mundo — solo rotarla las
+cambiaría. Por eso el suavizado no puede romper la lectura de las
+alineaciones.
+
+> **Corrección de una imprecisión del README anterior:** ahí decía que la
+> matemática de proyección (`proyeccion.js`) era lo que definía la etapa 2.
+> No es así — según `DISENO_GODOT.md` §10, la etapa 2 es solo la cámara.
+> La proyección se necesita para la **etapa 4** (la regla "puedes pisar lo
+> que se ve pegado a ti").
