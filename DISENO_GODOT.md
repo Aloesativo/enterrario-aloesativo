@@ -198,6 +198,53 @@ exacta(s). Es el mismo mecanismo que hoy resuelve UN acertijo en
 
 ---
 
+## 5 bis. Los personajes y las tres épocas
+
+**El jugador es un visitante, y no es nadie del lore.** No es Aloesativo
+ni ninguno de los tres personajes: es *"cualquiera que use la aplicación,
+postura de visitante real, tipo Google Street View"* (`IDEAS_DISENO.md`).
+Encaja con el verbo central: no encarnás, mirás y descubrís.
+
+**Los tres habitantes** (`src/story/burdeo.json` → `personajes`) son el
+mismo ser manifestado en tres planos temporales, y ninguno sabe de los
+otros dos:
+
+| Personaje | Plano | Rol en el mapa |
+|---|---|---|
+| El Archivista de Burdeo | renacentista | vive en la sombra, entre bibliotecas y estudios |
+| Cabeza Hueca | moderno (~80s) | el plano "ancla": la vigilia, la vida real |
+| Conejo Pasta Music | futuro | plano dreamtime — onírico, psicodélico |
+
+### Cómo conviven las épocas — DECIDIDO
+
+**No por rotación.** Se propuso que rotar cambiara de plano temporal
+(las tres épocas superpuestas en las mismas coordenadas, la rotación
+eligiendo cuál se pisa). **RR lo descartó explícitamente.** La rotación
+es y sigue siendo **solo espacial**: revela caminos y lugares, no épocas.
+
+**Sí por densidad visual, a nivel de mapa.** Esto ya estaba resuelto en
+`IDEAS_DISENO.md`, solo que suelto y sin conectar:
+
+- Renacimiento / Archivista → **denso** (referencia: Buscando a Wally)
+- Moderno / Cabeza Hueca → **low-poly gris** (TUNIC, Death's Door)
+- Futuro / Conejo → **geometría limpia** (FEZ, Monument Valley)
+
+Y la decisión de simplificación que lo ordena: *"no mezclar las tres
+técnicas de render en una misma escena — la convivencia de épocas ocurre
+a nivel de mapa, no dentro de un mismo cuadro"*.
+
+O sea: las épocas son **regiones del mismo mundo continuo**, con
+tratamiento visual distinto, y se pasa de una a otra **caminando**. No
+son escenas separadas (eso contradiría §5) ni capas por rotación.
+
+> Hilo que el lore deja servido, sin diseñar todavía: el puente entre el
+> plano moderno y el onírico **es la droga** — cuando Cabeza Hueca
+> consume, sin quererlo se conecta con Conejo Pasta Music. Sugiere que
+> no todas las transiciones entre épocas tienen por qué sentirse iguales.
+> Anotado, no decidido.
+
+---
+
 ## 6. Caminar tiene peso, y el mundo recuerda
 
 Referencia de RR: **Death Stranding**. Caminar no es transporte hacia lo
@@ -211,6 +258,110 @@ confirmar si alguna vez se quiere lo segundo.)
 Modificar el espacio y plantar es mecánica central, pero **sin menú de
 cultivo**: nada de pala/picota/regadera en una UI. RR lo rechazó
 explícitamente, dos veces. Interacción directa, siempre.
+
+### Cómo se implementa el peso (sin sistema nuevo)
+
+El gancho ya existe. `src/render/personaje.js` tiene hoy **dos** pasos
+distintos, no uno:
+
+| | Paso normal | Puente imposible |
+|---|---|---|
+| Duración | 160 ms | 420 ms |
+| Arco vertical | `ALTO * 0.12` | `ALTO * 0.9` |
+| Vibración | `10` | `[18,40,18,40,30]` |
+
+Y el porqué está escrito en el módulo: *"sin ella, cruzar un abismo se
+siente igual que caminar, y el hallazgo pierde su peso."*
+
+**La propuesta no es agregar un sistema de peso, es abrir esa perilla:**
+que duración / arco / vibración / sonido del paso sean propiedad del
+terreno y del estado, en vez de dos casos fijos. Caminar en la ciudad ≠
+en la luna ≠ en el cometa. Mismo mecanismo, distinta sensación.
+
+> ⚠️ **Límite duro, ya escrito en el código:** *"este juego se piensa con
+> los ojos, no con los dedos: una animación larga castigaría probar
+> alineaciones, que es exactamente lo que queremos que el jugador haga sin
+> miedo."*
+>
+> El peso va en la **textura** del paso (sonido, arco, vibración, cómo
+> aterriza), **no** en hacerlo lento. Un paso pesado-y-lento vuelve
+> tedioso probar rotaciones, que es el core del juego (§2).
+
+**Detalle ya resuelto, no re-descubrir:** mientras la animación corre, una
+tecla nueva **no se descarta** — se guarda en una cola de un solo paso (el
+más reciente gana) y se ejecuta al terminar. Antes se tiraba en silencio,
+y eso era lo que hacía sentir las flechas como rotas al pulsarlas rápido.
+
+---
+
+## 6 bis. Iluminación y bucle temporal
+
+### La contradicción, y cómo se resuelve
+
+Había tres posiciones encontradas en el repo:
+
+- `INFORME.md` §0 — el reloj temporal **se tiró**, porque *"castigaba el
+  descubrimiento en vez de premiarlo: llegar al lugar correcto en el
+  momento equivocado sonaba a silencio"*.
+- `IDEAS_DISENO.md` — *"El bucle temporal es fundamental, no se elimina."*
+- `burdeo.json` — *"las ventanas temporales NO son el punto central del
+  diseño: sirven para separar los elementos y darles orden. No
+  sobre-construir el sistema de tiempo."*
+
+**DECIDIDO (RR):** el bucle manda sobre **la atmósfera, nunca sobre el
+contenido**. Cambia la luz, el ánimo, cómo se ve el mundo — y **jamás**
+bloquea un hallazgo. Nunca se llega al lugar correcto y hay silencio.
+
+Así el bucle es fundamental (está siempre presente, se siente) sin
+reintroducir el castigo que hizo que se tirara la primera vez.
+
+### ⚠️ La trampa del sol cenital (verificada, cara si se descubre tarde)
+
+`theme/default.json` lo deja anotado y verificado (2026-07-31): con el sol
+alto (~55°, `[10,20,10]`) las sombras salen tan cortas que el propio
+objeto las tapa desde la cámara casi cenital — **parecen no funcionar,
+pero funcionan**. Con un sol rasante (`[16,5,7]`) aparecen de inmediato.
+
+**Por qué esto es grave acá y no en otro juego:** las sombras no son
+decoración, son **el dato que comunica a qué altura está cada cosa**. En
+un mundo que se lee por alineación (§2), perder las sombras es perder la
+información con la que se juega.
+
+Si el sol recorre el ciclo completo con el bucle, hay un momento —el
+mediodía— en que **el acertijo se vuelve ilegible**. Es el mismo tipo de
+falla que ya ocurrió con el tilt-shift (el efecto emborronaba justo la
+alineación que había que leer).
+
+**Regla:** el sol recorre un arco **acotado que nunca pasa por el cenit**.
+La hora del día cambia el ánimo; nunca borra la información de juego.
+
+---
+
+## 6 ter. Tres consideraciones que faltaban
+
+**Persistencia / guardado.** "El mundo recuerda lo que dejaste" (§6)
+implica guardado, y nunca se había mencionado. Define arquitectura: qué se
+guarda (celdas modificadas, plantas, hallazgos, puzzles resueltos), cuándo
+se guarda, y qué pasa con un guardado viejo cuando el mundo cambia de
+versión. Decidirlo tarde duele. **Sin diseñar todavía.**
+
+**El contraste es mecánica, no estética.** El acertijo se resuelve
+*mirando* si dos cosas se ven pegadas. Cualquier decisión visual que baje
+la legibilidad —colores muy cercanos entre capas, bloom quemando bordes,
+niebla mal calibrada— **rompe el juego, no solo lo afea**. Hay tres
+precedentes ya documentados: el tilt-shift, la niebla, y el sol cenital
+de arriba. Además `theme/default.json` avisa que un color por encima de
+~`#d0d0d0` supera el umbral de bloom y se quema hasta volverse ilegible.
+
+> **Regla:** la identidad visual la elige RR (siempre), pero **no puede
+> comerse la legibilidad de la alineación**. Si una elección de paleta
+> vuelve ilegible el acertijo, eso se reporta como bug de jugabilidad, no
+> se acepta en silencio.
+
+**El borde del mundo.** El mundo es acotado a propósito (§5) — falta
+decidir qué ve el jugador al llegar al límite: diorama flotando en negro,
+agua, niebla, caída y reaparición. Es chico pero se nota mucho en un juego
+contemplativo, donde la gente va a ir a mirar justo ahí. **Sin decidir.**
 
 ---
 
@@ -294,6 +445,9 @@ No se construyen ahora. Se anotan para que no se pierdan.
 - **Capas mayores sin tocar todavía:** reproductor-oráculo (I Ching + 72
   Nombres), streaming externo, dashboard de distribución, plantas
   generadas desde especies reales (GBIF).
+- **Sin decidir, anotado en su sección:** el guardado (§6 ter), el borde
+  del mundo (§6 ter), cómo se sienten las transiciones entre épocas
+  (§5 bis), y los puzzles enteros (§8).
 
 ---
 
@@ -343,8 +497,14 @@ consistente (§7).
 El look cosy en miniatura, atado al nivel de zoom, no al juego de cerca.
 
 **Etapa 8 en adelante — sin comprometer todavía:**
-capas superpuestas del lore (§5), descubrimientos y colección, puzzles
-(§8), memoria del mundo (§6), el libro (§9).
+capas superpuestas del lore (§5), regiones por época (§5 bis),
+descubrimientos y colección, puzzles (§8), memoria del mundo y su
+guardado (§6, §6 ter), iluminación con bucle (§6 bis), el libro (§9).
+
+> **Nota sobre la luz:** la iluminación con bucle temporal (§6 bis) NO va
+> antes de la etapa 5. Hasta que `validarNivel()` exista, un cambio de luz
+> que vuelva ilegible una alineación es indistinguible de un nivel roto —
+> y se perdería tiempo buscando el bug en el lugar equivocado.
 
 ---
 
