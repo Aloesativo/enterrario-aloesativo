@@ -107,6 +107,21 @@ sin ejecutar — la primera vez que corre de verdad es cuando RR le da
 play. Esto no es una limitación transitoria de "esta sesión": es
 estructural, va a seguir siendo así.
 
+## ANTES DE TOCAR `godot/`: leer `DISENO_GODOT.md` (2026-08-09)
+Existe un documento de diseño acordado con RR, escrito después de que dos
+prototipos en Godot se construyeran sin diseño previo y terminaran rotos.
+**Si vas a escribir código en `godot/`, leelo primero.** Si lo que vas a
+escribir no está ahí: no lo escribas — proponelo, acuérdenlo, anótalo, y
+recién después constrúyelo.
+
+Lo más importante que contiene, porque es la causa raíz del último
+fracaso: **el personaje se mueve por celdas discretas, un paso por
+empujón — nunca con velocidad continua ni `move_and_slide()`.** La regla
+del juego ("puedes pisar lo que se ve pegado a ti") compara posiciones en
+pantalla buscando igualdad exacta; con movimiento continuo esa igualdad
+no ocurre nunca y el mecanismo central del juego directamente no puede
+funcionar. No es preferencia de estilo, es condición de existencia.
+
 ## El diorama unificado rompió todo al probarlo — pausa para rediseñar (2026-08-09)
 RR probó el PR #18 (diorama unificado, ver entrada de arriba) en su
 máquina y reportó que "rompió completamente toda la funcionalidad" —
