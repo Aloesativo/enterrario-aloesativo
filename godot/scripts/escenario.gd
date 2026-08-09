@@ -12,6 +12,7 @@ func _ready() -> void:
 	_camara.projection = Camera3D.PROJECTION_ORTHOGONAL
 	_camara.size = 8.0
 	_camara.current = true
+	print("[escenario] '%s' cargó — personaje en %s" % [name, _personaje.position])
 
 func _process(_delta: float) -> void:
 	_camara.position = _personaje.position + OFFSET

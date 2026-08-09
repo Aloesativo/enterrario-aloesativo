@@ -15,16 +15,23 @@ sigue sirviendo — así siempre hay algo mostrable. El día que el de Godot
 ande, se retira `src/` y el workflow de deploy (`.github/workflows/deploy.yml`,
 hoy compila el proyecto Vite) se reemplaza por un export web de Godot.
 
-## Aviso importante: esto NO se probó corriendo
+## Aviso importante: el agente no puede correr Godot
 
 El agente que escribió esto trabaja en un entorno remoto sin GUI y sin
 acceso de red al sitio de descarga de Godot (política de egress de la
 sesión — no es negociable ni algo que se pueda evitar). Los archivos de
-Godot son texto plano (`.tscn`, `.gd`, `project.godot`) y se escribieron
-a mano con mucho cuidado de sintaxis, pero **la primera vez que esto se
-abre de verdad en el editor es en la máquina de RR.** Si algo no carga o
-tira un error, decílo tal cual lo veas — el agente lo corrige desde ahí,
-no puede adivinar el error sin verlo.
+Godot son texto plano (`.tscn`, `.gd`, `project.godot`) y se escriben a
+mano con mucho cuidado de sintaxis, pero **cada verificación real es la
+de RR, corriendo esto en su máquina.** Si algo no carga o tira un error,
+copiá el mensaje tal cual aparece en la terminal (no lo resumas) — con
+eso el agente lo corrige, no puede adivinar el error sin verlo.
+
+Por eso el código de `mapa.gd` y `escenario.gd` tiene mensajes `print()`
+en los puntos clave (arranque, cada zoom, cada intento de cambiar de
+escena). Corriendo el proyecto desde la terminal (no solo con F5 en el
+editor) esos mensajes aparecen directo en la consola donde lo lanzaste —
+es la forma más rápida de que el agente vea qué pasó sin tener que
+adivinar.
 
 ## Cómo probarlo
 

@@ -24,12 +24,14 @@ const VELOCIDAD_PAN := 8.0
 
 var _zoom := 12.0
 var _objetivo := Vector3.ZERO
+var _cambiando_escena := false # evita disparar change_scene_to_file dos veces si llegan varios "clics" de rueda seguidos
 
 func _ready() -> void:
 	_camara.projection = Camera3D.PROJECTION_ORTHOGONAL
 	for zona in ZONAS:
 		_crear_marcador(zona)
 	_actualizar_camara()
+	print("[mapa] listo — zoom inicial=%.1f, umbral de entrada=%.1f" % [_zoom, ZOOM_UMBRAL_CIUDAD])
 
 func _crear_marcador(zona: Dictionary) -> void:
 	var raiz := Node3D.new()
@@ -78,11 +80,24 @@ func _unhandled_input(event: InputEvent) -> void:
 			_alejar()
 
 func _acercar() -> void:
+	if _cambiando_escena:
+		return
 	_zoom = max(ZOOM_MIN, _zoom - ZOOM_PASO)
+	print("[mapa] zoom -> %.1f (objetivo %s)" % [_zoom, _objetivo])
 	if _zoom <= ZOOM_UMBRAL_CIUDAD:
-		var escena := _escena_de(_zona_mas_cercana())
-		if escena != "":
-			get_tree().change_scene_to_file(escena)
+		var zona_id := _zona_mas_cercana()
+		var escena := _escena_de(zona_id)
+		print("[mapa] bajo el umbral — zona más cercana: '%s', escena: '%s'" % [zona_id, escena])
+		if escena == "":
+			push_warning("[mapa] la zona '%s' no tiene escena asignada" % zona_id)
+		else:
+			_cambiando_escena = true
+			var error := get_tree().change_scene_to_file(escena)
+			if error != OK:
+				push_error("[mapa] change_scene_to_file('%s') falló con código %d" % [escena, error])
+				_cambiando_escena = false
+			else:
+				print("[mapa] cambiando a %s" % escena)
 
 func _alejar() -> void:
 	_zoom = min(ZOOM_MAX, _zoom + ZOOM_PASO)
