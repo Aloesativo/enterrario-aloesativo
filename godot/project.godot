@@ -1,0 +1,20 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Enterrario (prototipo Godot)"
+config/description="Diorama de Burdeo — mecánica de mapa-zoom + esqueleto de personaje. Ver godot/README.md antes de tocar nada."
+run/main_scene="res://escenas/Mapa.tscn"
+config/features=PackedStringArray("4.3", "Mobile")
+
+[rendering]
+
+renderer/rendering_method="mobile"

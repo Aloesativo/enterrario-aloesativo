@@ -67,6 +67,38 @@ recalcula `near`/`far` por frame a partir de la distancia real. Si se
 vuelven a poner distancias absolutas ahí, el bug reaparece — pero solo en
 algunos planos, que es peor porque parece intermitente.
 
+## Migración a Godot (2026-08-09) — decisión de RR, registrada acá para no volver a perderla
+RR ya había acordado esto en otra conversación que no quedó anotada en
+ningún repo — se perdió y hubo que retomarla desde cero. Para que no
+vuelva a pasar: **la intención es reemplazar** el pipeline Three.js/Vite
+de `src/` por un prototipo en Godot, que RR corre en vivo en un
+computador dedicado (no el que usa para música) con un control conectado
+— necesita esa iteración rápida, con más autonomía y control que lo que
+da iterar solo contra Pages. También quiere que el resultado siga siendo
+liviano y exportable a web, no solo de escritorio.
+
+El prototipo Godot vive en `godot/` (raíz de proyecto en
+`godot/project.godot`, no en la raíz del repo). Mientras no esté
+verificado corriendo en la máquina de RR, `src/` y el deploy a Pages
+siguen intactos — así siempre hay algo mostrable. El día que Godot ande,
+se retira `src/` y `.github/workflows/deploy.yml` pasa a exportar el
+proyecto Godot en vez de compilar Vite. Ver `godot/README.md` para el
+estado exacto de qué es mecánica real y qué es placeholder.
+
+**Consecuencia sobre "Despliegue: GitHub Pages, no local" (arriba):** esa
+regla seguía siendo "no instalar herramientas de desarrollo" pensando en
+la máquina de música de RR. Con Godot esa restricción cambia de forma
+puntual — RR instala el editor de Godot, pero en un computador aparte
+dedicado a esto. La regla de Pages como única forma de ver el prototipo
+sigue vigente para el track de Three.js; para Godot, la verificación es
+local, en el editor de RR.
+
+**Limitación técnica de esta sesión, anotada para la próxima:** el agente
+no pudo instalar ni correr el editor de Godot en el entorno remoto donde
+corre esta sesión (descarga bloqueada por política de red del entorno,
+no algo que se pueda evitar). Los `.tscn`/`.gd` de `godot/` se escribieron
+a mano sin poder probarlos — la primera verificación real es la de RR.
+
 ## Cómo verificar cambios visuales sin instalar nada (2026-07-31)
 `npm run build` solo prueba que compila, no que se vea. Para validar de
 verdad hay un script de humo con Playwright (Chromium ya viene en el
