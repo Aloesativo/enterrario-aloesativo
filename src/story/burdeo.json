@@ -1,7 +1,7 @@
 {
   "slug": "burdeo",
   "titulo": "Burdeo",
-  "_fuente": "Copia curada a mano del lore de Aloesativo/Aloesativo (notas: burdeo, mapa-burdeo, musica-para-hacer-nada, volando-suave, cronologia-canciones). Corte: 2026-08-01. NO se sincroniza sola — ver README de esta carpeta.",
+  "_fuente": "Copia curada a mano del lore de Aloesativo/Aloesativo (notas: burdeo, mapa-burdeo, musica-para-hacer-nada, volando-suave, cronologia-canciones, tres-planos-burdeo, cabeza-hueca, archivista-de-burdeo, conejo-pasta-music, nomenclatura-localidades). Corte: 2026-08-09. NO se sincroniza sola — ver README de esta carpeta.",
 
   "premisa": "Burdeo no es un lugar aparte del mundo real: es la forma en que se ve el mundo real cuando se lo mira de cerca. Ciudad arquetipo, homogénea, repetida en cualquier parte del planeta. Todo automatizado para funcionar y no para sentir.",
 
@@ -11,7 +11,8 @@
     "navegacion": "desplazamiento sin rotar + zoom a zonas",
     "_tension": "El render actual navega orbitando (azimut/elevación/volteo), no desplazando. Ver INFORME §9.7 — decisión pendiente de RR, no la toma el agente.",
     "regla": "La canción que suena depende de DÓNDE se mira y de CUÁNDO. Si llegas a un lugar en el momento equivocado del bucle, su canción no suena: en ese momento está pasando otra cosa.",
-    "_nota_de_peso": "El lore es explícito en que las ventanas temporales NO son el punto central del diseño: sirven para separar los elementos y darles orden. Lo que importa es la mecánica espacial-sonora. No sobre-construir el sistema de tiempo."
+    "_nota_de_peso": "El lore es explícito en que las ventanas temporales NO son el punto central del diseño: sirven para separar los elementos y darles orden. Lo que importa es la mecánica espacial-sonora. No sobre-construir el sistema de tiempo.",
+    "_notaTresPlanos": "Las tres épocas de `personajes` (renacentista, moderno, futuro) no son escenarios ni zonas separadas: conviven en este mismo mapa, en el mismo espacio (mapa-burdeo.md)."
   },
 
   "bucle": {
@@ -98,7 +99,9 @@
       "titulo": "El cometa",
       "escala": "transversal",
       "color": null,
-      "descripcion": "Algo espacial, fuera del espacio, pero visible para quienes están dentro de la ciudad. Atraviesa el mapa entero en vez de ocupar un lugar."
+      "descripcion": "Algo espacial, fuera del espacio, pero visible para quienes están dentro de la ciudad. Atraviesa el mapa entero en vez de ocupar un lugar.",
+      "_detalleLuz": "Energía que anuncia algo y trae vida a otro planeta: un haz de luz de color indefinido, entre vino, rojizo, rosado y morado — \"el color que cayó del cielo\".",
+      "_pendiente": "La descripción del haz de luz viene de una nota nueva (volando-suave.md) que no confirma explícitamente que sea el mismo cometa ya descrito arriba — es inferencia del agente por similitud de tono y color, no un hecho asentado por RR."
     },
     {
       "id": "carretera",
@@ -214,6 +217,50 @@
       "encarnaciones": ["planta", "gnomo", "estatua"],
       "temas": [],
       "_pendiente": "El lore describe la serie pero no lista títulos concretos. Faltan los temas y en qué punto exacto de qué zona se para cada uno."
+    }
+  ],
+
+  "personajes": {
+    "_fuente": "tres-planos-burdeo.md, cabeza-hueca.md, archivista-de-burdeo.md, conejo-pasta-music.md — estado: borrador (2026-08-09).",
+    "premisa": "Cabeza Hueca, El Archivista de Burdeo y Conejo Pasta Music no son tres personajes separados: son el mismo ser manifestado en tres planos temporales de Burdeo — renacentista, moderno (~años ochenta) y futuro. Ninguno de los tres sabe que es el mismo ser que los otros dos. Marco compartido: los tres trabajan en Burdeo intentando SER Aloesativo (un ser mitológico interno de la ficción, que los trasciende) y ninguno lo logra — son versiones mediocres, disminuidas.",
+    "_pendiente": "El ser unificador de los tres planos no tiene nombre propio en el lore — esta nota no le inventa uno. Tampoco está resuelto si un concepto borrador aparte, el 'Fantasma de archivos de audio' (un ser que existe solo a través de archivos de audio, transmisiones y grabaciones, conectado a la ciudad misma), pertenece a esta misma entidad o es algo distinto. RR lo marca explícitamente como hilo abierto — ninguna de las dos cosas se decide aquí.",
+    "lista": [
+      {
+        "id": "cabeza-hueca",
+        "titulo": "Cabeza Hueca",
+        "plano": "moderno",
+        "epoca": "~años ochenta",
+        "rolEnElMapa": "el plano \"ancla\": la vigilia, la vida real de la entidad",
+        "descripcion": "Humano cotidiano de la Burdeo moderna, con un agujero literal en la cabeza — se le ve el cerebro dentro. No es un zombi: es un ser vivo, funcional, cotidiano, con un daño visible. Sueña con ser una versión empequeñecida del dios-Aloesativo: un \"mini-aloesativo\".",
+        "puenteA": "conejo-pasta-music",
+        "_pendiente": "La ubicación exacta del agujero (ojo, boca, sien, frente) queda sin definir en el material fuente — no se elige ninguna opción aquí."
+      },
+      {
+        "id": "archivista-de-burdeo",
+        "titulo": "El Archivista de Burdeo",
+        "plano": "renacentista",
+        "rolEnElMapa": "vive en la sombra de Burdeo, entre bibliotecas y estudios",
+        "descripcion": "Humano con cara de búho. Productor y técnico, no mago: usa sintetizadores, DAW y equipos de grabación. \"El aspecto más poderoso, pero que también tiene sus limitaciones\".",
+        "_pendiente": "El material fuente no especifica cuáles son esas limitaciones — dato faltante, no se inventa aquí."
+      },
+      {
+        "id": "conejo-pasta-music",
+        "titulo": "Conejo Pasta Music",
+        "plano": "futuro",
+        "rolEnElMapa": "plano dreamtime — onírico, esquizofrénico, psicodélico",
+        "descripcion": "Personaje híbrido tipo furro. Psicodélicos legalizados y estandarizados, estética \"un mundo feliz\". Es la personificación de la droga misma (\"cuando uno consume una droga, la droga te consume a ti\"). \"Pasta\" es pasta base chilena — el detalle que lo hace, de los tres, el más chileno.",
+        "puente": "El puente entre el plano moderno y el plano onírico es la droga: cuando Cabeza Hueca consume pasta base, sin quererlo se conecta con Conejo Pasta Music."
+      }
+    ]
+  },
+
+  "problemasAbiertos": [
+    {
+      "id": "nomenclatura-localidades",
+      "titulo": "Nomenclatura de localidades",
+      "_fuente": "nomenclatura-localidades.md — estado: borrador (2026-08-09).",
+      "descripcion": "RR rechaza dos extremos para nombrar las localidades del mapa: nombres genéricos (\"la luna\", \"el asteroide\") y nombres rebuscados de fantasía medieval. Principio adoptado: nombrar cada localidad por su posición en la trayectoria de la luz del cometa (volando-suave). Las zonas de este archivo (luna, otro-planeta, bosque, etc.) siguen con nombres genéricos a la espera de ese naming — es un problema sin resolver por decisión explícita de RR, no un olvido del agente.",
+      "_pendiente": "Falta que RR confirme si las localidades de esta lista (la ciudad vista desde los edificios, la ciudad volando, el espacio, una especie de luna, un asteroide/cometa, un planeta, un bosque místico) coinciden una a una con las zonas ya definidas en este archivo (luna, otro-planeta, bosque, cometa) y les dé nombre propio. No se asume la equivalencia aquí."
     }
   ]
 }
