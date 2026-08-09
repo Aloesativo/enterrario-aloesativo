@@ -99,6 +99,25 @@ corre esta sesión (descarga bloqueada por política de red del entorno,
 no algo que se pueda evitar). Los `.tscn`/`.gd` de `godot/` se escribieron
 a mano sin poder probarlos — la primera verificación real es la de RR.
 
+**RR siempre prueba Godot él mismo, en su máquina — nunca el agente.**
+Esto ya estaba dicho arriba pero vale repetirlo explícito: el agente no
+tiene forma de correr Godot en ningún entorno donde corren estas
+sesiones. Cada cambio a `godot/` es código escrito leyendo con cuidado,
+sin ejecutar — la primera vez que corre de verdad es cuando RR le da
+play. Esto no es una limitación transitoria de "esta sesión": es
+estructural, va a seguir siendo así.
+
+## El diorama unificado rompió todo al probarlo — pausa para rediseñar (2026-08-09)
+RR probó el PR #18 (diorama unificado, ver entrada de arriba) en su
+máquina y reportó que "rompió completamente toda la funcionalidad" —
+regresión total confirmada, no un detalle menor. No se diagnosticó línea
+por línea todavía: en vez de seguir iterando a ciegas sobre código que el
+agente no puede verificar, RR pidió frenar la implementación y hacer
+primero una fase explícita de diseño (mecánicas, alcance, qué se
+construye y en qué orden) antes de escribir una sola línea más de Godot.
+Ver la sección correspondiente más abajo (o el documento de diseño que
+resulte de esa conversación) para el estado actual de esa fase.
+
 ## Bug del mapa-zoom sin vuelta atrás (2026-08-09)
 RR probó el prototipo Godot y reportó: el zoom hacia una zona funciona,
 pero una vez adentro "se queda pegado" y no hay forma de volver al mapa.
