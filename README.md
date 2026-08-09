@@ -11,6 +11,12 @@ que este repo lea automáticamente.
 - **Nombre de marca:** Enterrario
 - **Nombre coloquial:** terrario / terrarium
 
+> **Migración en curso a Godot (2026-08-09).** Este README describe el
+> prototipo en Three.js/Vite que sigue siendo lo que corre hoy en Pages.
+> Hay un segundo prototipo empezando en `godot/` (ver `godot/README.md`)
+> que va a reemplazarlo — mientras no esté verificado corriendo, este
+> sigue siendo la versión real.
+
 ## La idea, en una frase
 
 > Mueves al personaje para descubrir a dónde ir. Hay lugares a los que no
