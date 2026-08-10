@@ -53,6 +53,12 @@ alcanzar que, al rotar, se vuelve alcanzable.**
 | **Caminar** | Flechas | Stick izquierdo / D-pad |
 | **Rotar el mundo** | `A` y `D` | `LB` y `RB` |
 
+**Mantener apretado camina.** El personaje encadena pasos sin frenar entre
+celda y celda, bambolea al andar y encara la dirección a la que va. Su
+estado sigue siendo una celda discreta — lo que cambió es solo cómo se
+dibuja. Números para tocar, arriba de `scripts/personaje.gd`:
+`DURACION_PASO`, `AMPLITUD_BAMBOLEO`, `INCLINACION`, `VELOCIDAD_GIRO`.
+
 ### El acertijo
 
 En la ciudad hay **dos islas**: las calles (donde arrancás, abajo) y las

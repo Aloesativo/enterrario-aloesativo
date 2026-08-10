@@ -238,19 +238,37 @@ func _marca(celda: Vector3i, centro: Vector2i, color: Color, radio: float) -> Me
 func _crear_personaje() -> void:
 	_personaje = Personaje.new()
 	_personaje.name = "Personaje"
+	_personaje.paso_terminado.connect(_al_terminar_paso)
 
-	var malla := MeshInstance3D.new()
-	var capsula := CapsuleMesh.new()
-	capsula.radius = 0.28
-	capsula.height = 1.0
-	malla.mesh = capsula
+	# El cuerpo va en su propio nodo para que el bamboleo, la inclinación y
+	# el giro del andar no toquen la posición lógica (ver personaje.gd).
+	var cuerpo := Node3D.new()
+	cuerpo.name = "Cuerpo"
+
 	var material := StandardMaterial3D.new()
 	material.albedo_color = Color(0.85, 0.85, 0.9)
-	malla.material_override = material
-	malla.position = Vector3(0, 0.5, 0)
-	_personaje.add_child(malla)
 
-	_personaje.paso_terminado.connect(_al_terminar_paso)
+	var tronco := MeshInstance3D.new()
+	var capsula := CapsuleMesh.new()
+	capsula.radius = 0.26
+	capsula.height = 1.0
+	tronco.mesh = capsula
+	tronco.material_override = material
+	tronco.position = Vector3(0, 0.5, 0)
+	cuerpo.add_child(tronco)
+
+	# Un morro al frente. Sin esto la cápsula es simétrica y no se ve hacia
+	# dónde mira — y que mire hacia donde va es media gracia de que parezca
+	# una criatura y no una ficha.
+	var morro := MeshInstance3D.new()
+	var caja := BoxMesh.new()
+	caja.size = Vector3(0.17, 0.17, 0.24)
+	morro.mesh = caja
+	morro.material_override = material
+	morro.position = Vector3(0, 0.62, -0.26) # -Z es el frente en Godot
+	cuerpo.add_child(morro)
+
+	_personaje.montar_cuerpo(cuerpo)
 
 # ------------------------------------------------------------ cambio de zona
 
@@ -367,7 +385,7 @@ func _animar_giro(delta: float) -> void:
 
 # ------------------------------------------------------------------ pasos
 
-func _intentar_paso(direccion: String) -> void:
+func _intentar_paso(direccion: String, encadenado := false) -> void:
 	if _personaje.animando:
 		_cola_direccion = direccion
 		return
@@ -385,7 +403,7 @@ func _intentar_paso(direccion: String) -> void:
 		print("[mundo] ¡PUENTE IMPOSIBLE! %s -> %s (salto real de %d celdas)" % [
 			_personaje.celda, destino, paso["distancia"],
 		])
-	_personaje.ir_a(destino, paso["puente"])
+	_personaje.ir_a(destino, paso["puente"], encadenado)
 
 func _al_terminar_paso() -> void:
 	var datos: Dictionary = _zonas[_zona_activa]
@@ -403,10 +421,27 @@ func _al_terminar_paso() -> void:
 		_entrar_a(salidas[_personaje.celda] as String, true)
 		return
 
+	if _rotando or _viajando:
+		return
+
 	if _cola_direccion != "":
 		var direccion := _cola_direccion
 		_cola_direccion = ""
-		_intentar_paso(direccion)
+		_intentar_paso(direccion, true)
+		return
+
+	# Mantener apretado camina. Sin esto hay que volver a apretar por cada
+	# celda, y eso es la mitad de por qué el movimiento se sentía de
+	# ajedrez: cada paso era una jugada aparte, con su arranque y su frenada.
+	var sostenida := _direccion_sostenida()
+	if sostenida != "":
+		_intentar_paso(sostenida, true)
+
+func _direccion_sostenida() -> String:
+	for accion in DIRECCIONES:
+		if Input.is_action_pressed(accion):
+			return DIRECCIONES[accion] as String
+	return ""
 
 # ---------------------------------------------------------------- entrada
 

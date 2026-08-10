@@ -153,6 +153,35 @@ El paso puede (y debe) *verse* suave: se anima la transición entre celda
 y celda, con su arco, su peso y su tiempo. Lo que es discreto es el
 **estado lógico**, no la animación.
 
+### Qué significa "verse suave" (2026-08-10, RR probando)
+
+La primera versión respetaba la regla pero animaba cada paso como un
+saltito con frenada al final. RR lo describió exacto:
+
+> El movimiento es como de un personaje de ajedrez, y eso no está bien. La
+> idea es que se sienta más libre, como alguien caminando o **una bestia
+> que se mueve**.
+
+Las cuatro causas, y lo que las arregla — todo cosmético, **el estado
+lógico sigue siendo la celda**:
+
+| Causa | Arreglo |
+|---|---|
+| Un arquito de salto en cada celda | Sin arco al caminar; un **bamboleo** que *cruza* de celda a celda en vez de reiniciarse |
+| Frenada completa al final de cada paso | Los pasos **encadenan**: mientras se sigue andando, la velocidad es pareja |
+| Había que re-apretar por cada celda | **Mantener apretado camina** |
+| La cápsula no miraba hacia dónde iba | El cuerpo **encara** la dirección, y se echa hacia delante al andar |
+
+El **puente imposible** conserva a propósito el arco alto y la frenada: es
+la única pista de que pasó algo que no era obvio, y tiene que romper el
+ritmo del caminar.
+
+> Nota sobre "un paso por empujón": la nota original de `controls.js` decía
+> que el stick no debía dar un chorro continuo. Eso apuntaba a que no
+> hubiera **velocidad continua** (que sí rompería la matemática), no a
+> prohibir caminar sostenido. Mantener apretado da pasos discretos
+> encadenados: la regla se respeta igual.
+
 **Nota sobre física:** si en algún momento hace falta física (algo que
 caiga, ruede, se mueva con viento), va como adorno de cuerpos puntuales,
 **nunca como base del movimiento del personaje**. Ya estaba dicho en
