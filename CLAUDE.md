@@ -107,6 +107,47 @@ sin ejecutar — la primera vez que corre de verdad es cuando RR le da
 play. Esto no es una limitación transitoria de "esta sesión": es
 estructural, va a seguir siendo así.
 
+## Dos registros: habitar en 3ª persona + acertijo isométrico (2026-08-10)
+RR probó el prototipo presentable y detectó un choque estructural que
+ningún documento había nombrado: *"el personaje tiene que verse en tercera
+persona y habitar un entorno 3D común y corriente; ahora se ve solamente
+isométrico, y la idea es que la isometría funcione de manera
+cinematográfica"*. Pidió frenar el código y hacer **diseño general +
+preproducción** primero.
+
+El choque era real y no de encuadre: la isometría **no era un look, era el
+mecanismo** — la regla "puedes pisar lo que se ve pegado a ti" compara
+posiciones en pantalla buscando igualdad exacta, y eso solo existe en
+ortográfica isométrica verdadera con la cámara rígida. "La isometría es
+cinematográfica" y "el estereograma es el core" no podían ser verdad a la
+vez.
+
+**Decisión de RR: dos registros con frontera explícita.** Habitar =
+tercera persona en perspectiva, movimiento continuo, entorno 3D común y
+corriente. Acertijo = lo que ya existe, isométrica rígida y celdas
+discretas. Se entra cruzando un umbral físico visible, y la transición es
+un **dolly zoom** que aplana el mundo en una sola toma continua — eso es
+la isometría funcionando de manera cinematográfica. El mecanismo ya existe
+en `src/render/camera.js` + `theme/planos.json`; se porta, no se reinventa.
+
+**Lo que NO cambió:** la prohibición del movimiento continuo (causa raíz
+del prototipo que hubo que tirar) **se localiza, no se relaja** — dentro
+del acertijo sigue siendo absoluta. El nuevo modo de fallar es **filtrar
+un registro dentro del otro**: `move_and_slide()` en el acertijo lo rompe
+igual que antes.
+
+**El documento vigente es `PREPRODUCCION.md`** — bucle de juego, alcance
+de la rebanada vertical, plan por etapas A–F, riesgos. Corrige tres
+secciones de `DISENO_GODOT.md` (§3, §4, §10) y responde en parte §8.
+
+**Ganancia de diseño que no era obvia:** todo el material de §6 de
+`DISENO_GODOT.md` (el peso del paso estilo Death Stranding, plantar, el
+mundo que recuerda) no calzaba bien en un juego de celdas discretas y no
+tenía dónde vivir. Ahora tiene: es el contenido del registro habitar. Y el
+riesgo #1 de la estructura nueva es justamente que ese registro se quede
+**sin** mecánica propia y el juego termine siendo un pasillo entre cuartos
+de acertijo.
+
 ## ANTES DE TOCAR `godot/`: leer `DISENO_GODOT.md` (2026-08-09)
 Existe un documento de diseño acordado con RR, escrito después de que dos
 prototipos en Godot se construyeran sin diseño previo y terminaran rotos.

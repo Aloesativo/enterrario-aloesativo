@@ -1,9 +1,22 @@
 # godot/ — prototipo por etapas
 
-> **Antes de tocar cualquier cosa acá: leer `../DISENO_GODOT.md`.**
-> Este prototipo se construye por etapas chicas definidas ahí (§10). Si lo
-> que vas a escribir no está en ese documento, no se escribe: se propone,
-> se acuerda, se anota, y recién después se construye.
+> **Antes de tocar cualquier cosa acá: leer `../PREPRODUCCION.md` y después
+> `../DISENO_GODOT.md`.** Si lo que vas a escribir no está en esos
+> documentos, no se escribe: se propone, se acuerda, se anota, y recién
+> después se construye.
+
+> ⚠️ **Lo que hay en esta carpeta es UN registro del juego, no el juego
+> (2026-08-10).** RR decidió que el juego tiene **dos registros**: habitar
+> el mundo en tercera persona con movimiento continuo (todavía **no
+> existe**), y el acertijo isométrico con celdas discretas (**es todo lo
+> que está descrito acá abajo**). Se entra al acertijo cruzando un umbral
+> visible, y la cámara hace un dolly zoom que aplana el mundo en una sola
+> toma. Ver `../PREPRODUCCION.md` §1 y §2.
+>
+> Consecuencia práctica para quien lea esto: **la cámara ortográfica rígida,
+> las celdas discretas y la ausencia de órbita libre son correctas acá y
+> solo acá.** No son el estilo del juego entero — son las reglas de este
+> registro, y en el otro son incorrectas.
 
 ## Estado: el diorama de Burdeo, en zonas modulares
 
