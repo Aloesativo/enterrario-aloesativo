@@ -17,9 +17,11 @@ class_name Navegacion
 
 var _indices: Array = [] # por rotación: Vector2i(pantalla) -> Vector3i(celda)
 var _centro: Vector2i
+var _bloques: Array = []
 
 func _init(bloques: Array, centro: Vector2i) -> void:
 	_centro = centro
+	_bloques = bloques
 	for r in Proyeccion.ROTACIONES:
 		var mapa := {}
 		for b in bloques:
@@ -44,12 +46,30 @@ func _init(bloques: Array, centro: Vector2i) -> void:
 func celda_en_pantalla(pantalla: Vector2i, rotacion: int):
 	return _indices[rotacion].get(pantalla)
 
+## ¿Se VE esta celda, o está tapada por otra más cerca de la cámara?
+func esta_visible(celda: Vector3i, rotacion: int) -> bool:
+	var visible = _indices[rotacion].get(Proyeccion.proyectar(celda, rotacion, _centro))
+	return visible != null and (visible as Vector3i) == celda
+
 ## Intenta dar un paso. Devuelve un diccionario con `permitido`, y si lo es,
 ## también `celda`, `puente` (si en el mundo real esas celdas NO se tocan y
 ## solo las une la perspectiva) y `distancia`.
 func intentar_paso(desde: Vector3i, direccion: String, rotacion: int) -> Dictionary:
 	if not Proyeccion.PASOS.has(direccion):
 		return {"permitido": false, "motivo": "direccion-desconocida"}
+
+	# LA OTRA MITAD DE LA REGLA: si no se te ve, no podés actuar.
+	#
+	# "Puedes pisar lo que se ve pegado a ti" solo tiene sentido si vos
+	# también estás a la vista. Al rotar, el personaje puede quedar tapado
+	# por la otra isla; si desde ahí pudiera saltar, el salto se vería salir
+	# de la nada y aterrizar solo — se siente teletransporte, y rompe el
+	# desafío (el jugador ni siquiera puede ver desde dónde saltó).
+	#
+	# Quedar tapado es inevitable y está bien. Lo que no puede pasar es
+	# actuar estando tapado. Se sale rotando.
+	if not esta_visible(desde, rotacion):
+		return {"permitido": false, "motivo": "oculto"}
 
 	var pantalla := Proyeccion.proyectar(desde, rotacion, _centro)
 	var destino := pantalla + (Proyeccion.PASOS[direccion] as Vector2i)
@@ -107,6 +127,35 @@ func validar(partida: Vector3i, objetivo: Vector3i, rotacion_inicial: int) -> bo
 	if resuelven.has(rotacion_inicial):
 		push_warning("[nivel] NO ES ACERTIJO: el objetivo ya se alcanza en la rotación inicial.")
 		return false
+	if not _comprobar_sin_trampas():
+		return false
 
 	print("[nivel] OK — acertijo válido: hay que rotar para llegar.")
 	return true
+
+## Tercera forma de romper un nivel, y la más traicionera: una celda que
+## quede TAPADA en las cuatro rotaciones.
+##
+## Como no se puede actuar estando oculto, el jugador que pise ahí no puede
+## ni moverse ni salir rotando: queda trabado para siempre y hay que
+## reiniciar. El BFS de arriba no lo detecta nunca, porque nunca rota — solo
+## explora dentro de una rotación fija.
+func _comprobar_sin_trampas() -> bool:
+	var trampas: Array = []
+	for b in _bloques:
+		var celda: Vector3i = b
+		var visible_en_alguna := false
+		for r in Proyeccion.ROTACIONES:
+			if esta_visible(celda, r):
+				visible_en_alguna = true
+				break
+		if not visible_en_alguna:
+			trampas.append(celda)
+
+	if trampas.is_empty():
+		return true
+
+	push_warning("[nivel] TRAMPA: %d celdas quedan tapadas en las 4 rotaciones; quien pise ahí no puede salir. %s" % [
+		trampas.size(), trampas.slice(0, 5),
+	])
+	return false

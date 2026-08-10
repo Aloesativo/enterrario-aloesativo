@@ -108,6 +108,7 @@ var _angulo_hasta := 0.0
 var _cola_direccion := ""
 var _descubierto := false
 var _tiempo := 0.0
+var _aviso_oculto_dado := false
 
 ## La rotación que usa la matemática de alineación. Siempre 0..3.
 var rotacion: int:
@@ -254,6 +255,7 @@ func _rotar(sentido: int) -> void:
 	_angulo_hasta = _angulo_de(_giro_continuo)
 	_t_giro = 0.0
 	_rotando = true
+	_aviso_oculto_dado = false
 	print("[mundo] rotación -> %d (giro continuo %d)" % [rotacion, _giro_continuo])
 
 func _animar_giro(delta: float) -> void:
@@ -281,6 +283,13 @@ func _intentar_paso(direccion: String) -> void:
 
 	var paso := _nav.intentar_paso(_personaje.celda, direccion, rotacion)
 	if not paso["permitido"]:
+		if paso["motivo"] == "oculto" and not _aviso_oculto_dado:
+			# Sin esto parecería que los controles dejaron de responder. El
+			# personaje está tapado por la otra isla: hay que rotar (A/D o
+			# los bumpers) para volver a verlo y poder moverse.
+			# Se avisa una sola vez por episodio para no llenar la consola.
+			_aviso_oculto_dado = true
+			print("[mundo] estás tapado por otra isla: no se puede actuar sin que se te vea. Rotá para salir.")
 		return
 
 	var destino: Vector3i = paso["celda"]

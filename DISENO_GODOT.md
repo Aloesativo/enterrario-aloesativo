@@ -80,6 +80,36 @@ se ve pegado a ti*. Sin casos especiales — el jugador tiene que poder
 construir un modelo mental fiable, y una regla con excepciones se lo
 impide. (`src/mundo/navegacion.js`.)
 
+### La otra mitad de la regla: si no se te ve, no podés actuar (2026-08-10)
+
+Decisión de RR al probar el prototipo. Al rotar, el personaje puede quedar
+**tapado** por otra isla. Hasta ese momento igual podía saltar desde ahí, y
+el resultado se veía como un salto que sale de la nada y aterriza solo:
+teletransporte, no descubrimiento.
+
+> Quedar tapado es inevitable y está bien. Lo que no puede pasar es
+> **actuar** estando tapado. Se sale rotando.
+
+No es una excepción a la regla: es su otra mitad. "Puedes pisar lo que se
+ve pegado a ti" solo tiene sentido si vos también estás a la vista — si no,
+el jugador ni siquiera puede ver desde dónde saltó.
+
+**Consecuencia sobre el diseño de niveles — tercera forma de romper uno.**
+A las dos ya conocidas (objetivo inalcanzable en las 4 rotaciones; objetivo
+alcanzable ya en la inicial) se suma: **una celda tapada en las 4
+rotaciones** deja al jugador trabado para siempre, sin poder moverse ni
+salir rotando.
+
+Y es la más traicionera, porque **el BFS de validación no la detecta**: el
+BFS explora dentro de una rotación fija, nunca rota, así que nunca se topa
+con el caso "quedé tapado al rotar". Necesita su propia comprobación.
+
+> **Dato real:** al aplicar esta regla, el nivel de `src/mundo/nivel.json`
+> (el de Three.js) **queda sin solución** — su celda de partida está tapada
+> en la rotación 0, y desde ahí no se puede hacer nada. Comprobado con
+> `godot/herramientas/verificar_nivel.py`. Si algún día se retoma ese
+> nivel, hay que rediseñarlo.
+
 ### Por qué las rotaciones tienen que ser exactas
 
 `INFORME.md` §6 documenta un bug real y caro: al interpolar el giro con

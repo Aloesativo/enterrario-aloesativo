@@ -41,6 +41,19 @@ pegadas, se pueden pisar.
 > **puedes pisar lo que se ve pegado a ti.**
 > No lo que está al lado en el mundo — lo que está al lado en la PANTALLA.
 
+### Si no se te ve, no podés actuar
+
+Al rotar, el personaje puede quedar **tapado** por la otra isla. Cuando eso
+pasa, no se puede mover: hay que **rotar para volver a verlo**.
+
+Quedar tapado es inevitable y está bien; lo que no puede pasar es actuar
+estando tapado — el salto se vería salir de la nada y aterrizar solo, que
+es teletransporte y no descubrimiento. No es una excepción a la regla: es
+su otra mitad. Si estás tapado y apretás una dirección, la consola avisa.
+
+En este nivel quedan 16 celdas tapadas en la rotación 0 y ninguna en las
+otras tres, así que **siempre se puede salir rotando**.
+
 Cuando cruces, el paso se siente distinto a propósito: dura más y el
 personaje describe un arco alto. Es la única pista que da el sistema de que
 acabás de hacer algo que no era obvio. Por la terminal sale
@@ -75,9 +88,17 @@ El dato que mejor muestra el efecto Magic Eye: el nivel entero ocupa
 **17.15** de alto en la rotación 2 (todo desplegado). Es el mismo mundo.
 
 Además, `Navegacion.validar()` **vuelve a comprobarlo en cada arranque** y
-avisa por consola. Un nivel se rompe de dos formas y las dos son mudas:
-que el objetivo quede inalcanzable en las cuatro rotaciones, o que ya se
-alcance en la inicial (entonces no es acertijo).
+avisa por consola. Un nivel se rompe de **tres** formas, y las tres son
+mudas si nadie las comprueba:
+
+1. El objetivo queda **inalcanzable** en las cuatro rotaciones.
+2. El objetivo se alcanza **ya en la rotación inicial** → no es acertijo.
+3. Una celda queda **tapada en las cuatro rotaciones** → quien pise ahí no
+   puede moverse ni salir rotando: trabado para siempre.
+
+> La tercera es la más traicionera porque **el BFS no la detecta**: explora
+> dentro de una rotación fija, nunca rota, así que jamás se topa con el
+> caso "quedé tapado al rotar". Tiene su propia comprobación aparte.
 
 > ⚠️ **Los números del nivel (`AREAS`, `CENTRO`) no se tocan a ojo.** Mover
 > una isla UNA celda puede romper el acertijo en cualquiera de las dos
