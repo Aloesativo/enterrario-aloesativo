@@ -11,6 +11,16 @@
 > **Regla de uso.** Si una sesión futura va a escribir código en `godot/`,
 > lee esto primero. Si lo que va a escribir no está acá, no lo escribe:
 > lo propone, se acuerda, se anota, y recién después se construye.
+>
+> ⚠️ **LEER `PREPRODUCCION.md` ANTES QUE ESTE ARCHIVO (2026-08-10).** RR
+> decidió que el juego tiene **dos registros** —habitar en tercera persona
+> con movimiento continuo, y el acertijo isométrico con celdas discretas—
+> con una frontera explícita entre ambos. Este documento fue escrito
+> asumiendo **un solo registro**, el del acertijo. Sigue siendo correcto
+> palabra por palabra *dentro* de ese registro, pero tres secciones quedaron
+> corregidas: **§3** (la prohibición del movimiento continuo, que ahora es
+> local y no universal), **§4** (la órbita de cámara) y **§10** (el plan por
+> etapas, reemplazado). Cada una lo dice en su lugar.
 
 ---
 
@@ -133,6 +143,23 @@ hay órbita libre de cámara. Ver §4.
 
 **Este es el error que rompió el prototipo anterior. No repetirlo.**
 
+> ⚠️ **CORREGIDO EN ALCANCE, NO EN FUERZA (2026-08-10).** Esta sección decía
+> "nunca continuo" de forma **universal**. Con los dos registros de
+> `PREPRODUCCION.md` §1, la regla **se localiza pero no se relaja**:
+>
+> - **Dentro del registro acertijo la prohibición sigue siendo absoluta.**
+>   Todo lo que dice esta sección vale intacto: celdas discretas, `Vector3i`,
+>   sin `move_and_slide()`, sin gravedad, sin velocidad continua. Sigue
+>   siendo condición de existencia del core (§2), no preferencia de estilo.
+> - **Dentro del registro habitar el movimiento continuo es lo correcto**,
+>   porque ahí no hay ninguna comparación de igualdad exacta que romper.
+>
+> **El nuevo modo de fallar es filtrar un registro dentro del otro.** Si
+> alguna vez `move_and_slide()` aparece en el código del acertijo, se rompe
+> el juego igual que antes. Cada registro va en sus propios scripts; si un
+> script necesita preguntar en qué registro está para decidir cómo se mueve,
+> eso ya es un olor de arquitectura.
+
 El personaje se mueve **por celdas discretas, un paso por empujón**. No
 hay velocidad continua, no hay `move_and_slide()`, no hay gravedad
 simulada como base del movimiento.
@@ -206,6 +233,17 @@ se entendía.
 **No hay órbita libre. La cámara del juego no se toca, ni un poco.** Su
 rigidez es la condición de que el acertijo se pueda leer: si la cámara se
 moviera sola, las alineaciones cambiarían sin que el jugador lo pidiera.
+
+> ⚠️ **CORREGIDO (2026-08-10, `PREPRODUCCION.md` §2).** Esta regla se parte
+> en dos con los dos registros:
+> - **En el acertijo: intacta y absoluta.** Ni un poco. Por el motivo de
+>   arriba, que no cambió.
+> - **En habitar: sí hay control de cámara** (stick derecho / mouse). Es una
+>   tercera persona normal y sin eso no se habita nada.
+>
+> Los dos verbos de la tabla de arriba siguen siendo los del acertijo. El
+> registro habitar tiene los suyos y todavía no están calibrados — se
+> definen en la etapa A de `PREPRODUCCION.md` §6.
 
 **Requisitos de RR sobre controles (duros):**
 - Cero controles visibles en pantalla. Nada de HUD de botones, ni en touch.
@@ -525,6 +563,13 @@ Pregunta abierta importante: ¿el puzzle es el mismo mecanismo del
 estereograma evolucionado, o es literalmente otro sistema (un
 rompecabezas aparte que se manipula)? No decidido.
 
+> ✅ **RESPONDIDA EN PARTE (2026-08-10, `PREPRODUCCION.md` §4).** La decisión
+> de los dos registros la contesta gratis: **el estereograma ES el puzzle**,
+> y su lugar en la estructura son los santuarios que se cruzan desde el
+> registro habitar. No es otro sistema aparte. Sigue abierto si además hay
+> rompecabezas de otro tipo *dentro* de los santuarios, y el gatillo exacto
+> de desbloqueo.
+
 ---
 
 ## 9. Ideas parqueadas (acordadas, sin diseñar)
@@ -555,6 +600,12 @@ No se construyen ahora. Se anotan para que no se pierdan.
 ---
 
 ## 10. Plan por etapas
+
+> ⚠️ **REEMPLAZADO (2026-08-10).** El plan de esta sección asumía **un solo
+> registro**. Las etapas 1 a 5 están **hechas y verificadas por RR** y
+> siguen valiendo: son el registro acertijo. Las etapas 6 en adelante se
+> reordenaron. **El plan vigente es `PREPRODUCCION.md` §6** (etapas A–F). Se
+> deja esto como historial y porque el principio de abajo sigue rigiendo.
 
 Cada etapa es chica, termina en algo que RR puede **probar y sentir**, y
 no se avanza a la siguiente sin que RR confirme que la anterior anda.
