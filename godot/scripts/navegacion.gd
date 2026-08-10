@@ -58,18 +58,8 @@ func intentar_paso(desde: Vector3i, direccion: String, rotacion: int) -> Diction
 	if not Proyeccion.PASOS.has(direccion):
 		return {"permitido": false, "motivo": "direccion-desconocida"}
 
-	# LA OTRA MITAD DE LA REGLA: si no se te ve, no podés actuar.
-	#
-	# "Puedes pisar lo que se ve pegado a ti" solo tiene sentido si vos
-	# también estás a la vista. Al rotar, el personaje puede quedar tapado
-	# por la otra isla; si desde ahí pudiera saltar, el salto se vería salir
-	# de la nada y aterrizar solo — se siente teletransporte, y rompe el
-	# desafío (el jugador ni siquiera puede ver desde dónde saltó).
-	#
-	# Quedar tapado es inevitable y está bien. Lo que no puede pasar es
-	# actuar estando tapado. Se sale rotando.
-	if not esta_visible(desde, rotacion):
-		return {"permitido": false, "motivo": "oculto"}
+	# (La comprobación de visibilidad va más abajo: necesita saber primero
+	# si el paso es un puente o un paso normal.)
 
 	var pantalla := Proyeccion.proyectar(desde, rotacion, _centro)
 	var destino := pantalla + (Proyeccion.PASOS[direccion] as Vector2i)
@@ -80,11 +70,27 @@ func intentar_paso(desde: Vector3i, direccion: String, rotacion: int) -> Diction
 
 	var c := celda as Vector3i
 	var distancia: int = absi(c.x - desde.x) + absi(c.y - desde.y) + absi(c.z - desde.z)
+	var puente := distancia > 1
+
+	# LA OTRA MITAD DE LA REGLA: estando tapado no se puede romper la
+	# ilusión — pero sí caminar.
+	#
+	# Al rotar, el personaje puede quedar tapado por otra isla. Si desde ahí
+	# pudiera SALTAR, el salto se vería salir de la nada y aterrizar solo:
+	# teletransporte, no descubrimiento — el jugador ni siquiera puede ver
+	# desde dónde saltó.
+	#
+	# Pero solo se bloquea el puente, nunca el paso normal. Quedar tapado no
+	# congela al personaje: se puede seguir caminando, y sobre todo se puede
+	# volver por donde se vino. Bloquear todo era un softlock, y el
+	# movimiento tiene que sentirse libre.
+	if puente and not esta_visible(desde, rotacion):
+		return {"permitido": false, "motivo": "oculto"}
 
 	return {
 		"permitido": true,
 		"celda": c,
-		"puente": distancia > 1,
+		"puente": puente,
 		"distancia": distancia,
 	}
 
@@ -127,21 +133,19 @@ func validar(partida: Vector3i, objetivo: Vector3i, rotacion_inicial: int) -> bo
 	if resuelven.has(rotacion_inicial):
 		push_warning("[nivel] NO ES ACERTIJO: el objetivo ya se alcanza en la rotación inicial.")
 		return false
-	if not _comprobar_sin_trampas():
-		return false
+	_avisar_celdas_siempre_tapadas()
 
 	print("[nivel] OK — acertijo válido: hay que rotar para llegar.")
 	return true
 
-## Tercera forma de romper un nivel, y la más traicionera: una celda que
-## quede TAPADA en las cuatro rotaciones.
+## Aviso, no falla: celdas que quedan tapadas en las CUATRO rotaciones.
 ##
-## Como no se puede actuar estando oculto, el jugador que pise ahí no puede
-## ni moverse ni salir rotando: queda trabado para siempre y hay que
-## reiniciar. El BFS de arriba no lo detecta nunca, porque nunca rota — solo
-## explora dentro de una rotación fija.
-func _comprobar_sin_trampas() -> bool:
-	var trampas: Array = []
+## Ya no es un softlock — estando tapado igual se puede caminar, solo no se
+## puede cruzar un puente. Pero una celda que nunca se ve en ninguna
+## rotación sigue siendo un olor de diseño: el jugador puede pararse en un
+## sitio donde no se ve nunca, y eso se siente roto aunque no lo esté.
+func _avisar_celdas_siempre_tapadas() -> void:
+	var siempre_tapadas: Array = []
 	for b in _bloques:
 		var celda: Vector3i = b
 		var visible_en_alguna := false
@@ -150,12 +154,9 @@ func _comprobar_sin_trampas() -> bool:
 				visible_en_alguna = true
 				break
 		if not visible_en_alguna:
-			trampas.append(celda)
+			siempre_tapadas.append(celda)
 
-	if trampas.is_empty():
-		return true
-
-	push_warning("[nivel] TRAMPA: %d celdas quedan tapadas en las 4 rotaciones; quien pise ahí no puede salir. %s" % [
-		trampas.size(), trampas.slice(0, 5),
-	])
-	return false
+	if not siempre_tapadas.is_empty():
+		push_warning("[nivel] %d celdas nunca se ven en ninguna rotación: %s" % [
+			siempre_tapadas.size(), siempre_tapadas.slice(0, 5),
+		])

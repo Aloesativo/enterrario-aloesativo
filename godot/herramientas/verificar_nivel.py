@@ -67,19 +67,19 @@ def esta_visible(celda, indice, rot, centro):
 
 
 def intentar_paso(desde, direccion, indice, rot, centro):
-    # Si no se te ve, no podes actuar. Es la otra mitad de la regla unica:
-    # "puedes pisar lo que se ve pegado a ti" solo tiene sentido si vos
-    # tambien estas a la vista. Saltar desde detras de una isla se siente
-    # como teletransporte y rompe el desafio.
-    if not esta_visible(desde, indice, rot, centro):
-        return None
-
     pa, pb = proyectar(desde, rot, centro)
     da, db = PASOS[direccion]
     destino = indice.get((pa + da, pb + db))
     if destino is None:
         return None
     dist = abs(destino[0] - desde[0]) + abs(destino[1] - desde[1]) + abs(destino[2] - desde[2])
+
+    # Estando tapado no se puede romper la ilusion (cruzar un puente), pero
+    # SI se puede caminar. Bloquear todo era un softlock; el movimiento
+    # tiene que sentirse libre.
+    if dist > 1 and not esta_visible(desde, indice, rot, centro):
+        return None
+
     return destino, dist
 
 
@@ -130,20 +130,19 @@ def evaluar(nombre, areas, centro, partida, objetivo, rot_inicial):
         print(f"  X FALLA: se alcanza ya en la rotacion inicial ({rot_inicial}) -> no hay acertijo.")
         return False
 
-    # Tercera falla, y la que el BFS NO puede ver: el BFS nunca rota, asi
-    # que nunca encuentra el caso "quede tapado al rotar". Una celda tapada
-    # en las 4 rotaciones deja al jugador trabado sin salida.
+    # Aviso, no falla: estando tapado igual se puede caminar, asi que no hay
+    # softlock. Pero una celda que no se ve en NINGUNA rotacion es un olor
+    # de diseno: el jugador puede pararse donde nunca se lo ve.
     indices = [construir_indice(bloques, r, centro) for r in range(4)]
-    trampas = [
+    siempre_tapadas = [
         c for c in bloques
         if not any(esta_visible(c, indices[r], r, centro) for r in range(4))
     ]
-    if trampas:
-        print(f"  X FALLA: {len(trampas)} celdas tapadas en las 4 rotaciones (sin salida): {trampas[:5]}")
-        return False
+    if siempre_tapadas:
+        print(f"  aviso: {len(siempre_tapadas)} celdas no se ven en ninguna rotacion: {siempre_tapadas[:5]}")
 
     tapadas = {r: sum(1 for c in bloques if not esta_visible(c, indices[r], r, centro)) for r in range(4)}
-    print(f"  celdas tapadas por rotacion: {tapadas} (tapado esta bien; sin salida no)")
+    print(f"  celdas tapadas por rotacion: {tapadas} (tapado esta bien: igual se camina)")
     print(f"  OK: acertijo valido. Inicia en rot {rot_inicial}, se resuelve rotando a {ok_rots}.")
     return True
 

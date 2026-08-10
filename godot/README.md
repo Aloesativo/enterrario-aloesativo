@@ -5,14 +5,43 @@
 > que vas a escribir no está en ese documento, no se escribe: se propone,
 > se acuerda, se anota, y recién después se construye.
 
-## Estado: ETAPAS 3 y 4 — EL JUEGO
+## Estado: el diorama de Burdeo, en zonas modulares
 
-✅ Etapas 1 y 2 verificadas por RR (caminar por celdas, cámara isométrica).
+**Tres zonas del lore**, cada una un espacio en sí mismo con su propio
+acertijo, su propio centro de giro y su propia rotación recordada:
 
-Se hicieron las dos juntas porque por separado no se sienten a nada: una
-grilla plana que se recorre es un tablero de ajedrez, y rotar un plano sin
-relieve tampoco muestra nada. **Lo que convierte esto en un juego es que
-haya un lugar imposible de alcanzar que, al rotar, se vuelve alcanzable.**
+| Zona | Qué es | Acertijo |
+|---|---|---|
+| **ciudad** | Burdeo: las calles y las dos torres (Burdeo BB) | sí — el mirador de las torres |
+| **playa** | "conectada a Burdeo dentro del mismo mapa" | no, a propósito: un lugar donde estar |
+| **luna** | "el satélite de la ciudad" | sí, más chico y más alto |
+
+Se viaja pisando las **esferas celestes** (portales). Arriba de las torres
+de la ciudad —a donde solo se llega resolviendo el acertijo— está el portal
+a la luna: el premio de resolverlo. A ras de suelo hay otro a la playa.
+
+### La ilusión: son espacios distintos
+
+Los espacios **no comparten coordenadas**. Cada uno es independiente y la
+sensación de que forman un mismo diorama la da el **viaje de la cámara**.
+
+Se probó primero la otra forma —todas las zonas superpuestas en un mismo
+sistema de coordenadas— y falló por dos motivos medidos: hacía falta una
+cámara de 36 unidades (todo diminuto), y cada zona tenía que abrirse en una
+rotación distinta *a la vez*, así que **mover una rompía otra**.
+
+Con zonas modulares, **cada una se valida sola**. Agregar una zona no puede
+romper las demás. Eso es lo que hace que esto escale.
+
+> **Simplificación conocida:** al entrar a una zona siempre aparecés en su
+> celda de partida, no al lado del portal por el que llegaste. Se nota al
+> volver a la ciudad desde la playa. Falta que cada portal declare su celda
+> de llegada.
+
+## El mecanismo dentro de cada zona
+
+**Lo que convierte esto en un juego es que haya un lugar imposible de
+alcanzar que, al rotar, se vuelve alcanzable.**
 
 ### Cómo jugarlo
 
@@ -26,8 +55,9 @@ haya un lugar imposible de alcanzar que, al rotar, se vuelve alcanzable.**
 
 ### El acertijo
 
-Hay **dos islas**: la orilla (donde arrancás, abajo) y el mirador (arriba,
-a 7 de altura), con una **esfera dorada** encima que marca el objetivo.
+En la ciudad hay **dos islas**: las calles (donde arrancás, abajo) y las
+torres (arriba, a 7 de altura), con una **esfera dorada** encima que marca
+el mirador.
 
 Están separadas por un abismo real de **22 celdas**. No hay puente, no hay
 rampa, no hay escalera. Desde la rotación en la que arrancás, el mirador es
@@ -41,18 +71,20 @@ pegadas, se pueden pisar.
 > **puedes pisar lo que se ve pegado a ti.**
 > No lo que está al lado en el mundo — lo que está al lado en la PANTALLA.
 
-### Si no se te ve, no podés actuar
+### Si no se te ve, no podés romper la ilusión
 
-Al rotar, el personaje puede quedar **tapado** por la otra isla. Cuando eso
-pasa, no se puede mover: hay que **rotar para volver a verlo**.
+Al rotar, el personaje puede quedar **tapado** por la otra isla. Desde ahí
+**no se puede cruzar un puente** — pero sí se puede seguir caminando, y
+sobre todo volver por donde viniste.
 
-Quedar tapado es inevitable y está bien; lo que no puede pasar es actuar
-estando tapado — el salto se vería salir de la nada y aterrizar solo, que
-es teletransporte y no descubrimiento. No es una excepción a la regla: es
-su otra mitad. Si estás tapado y apretás una dirección, la consola avisa.
+Quedar tapado es inevitable y está bien. Lo que no puede pasar es *saltar*
+estando tapado: el salto se vería salir de la nada y aterrizar solo, que es
+teletransporte y no descubrimiento — el jugador ni siquiera puede ver desde
+dónde saltó. No es una excepción a la regla: es su otra mitad.
 
-En este nivel quedan 16 celdas tapadas en la rotación 0 y ninguna en las
-otras tres, así que **siempre se puede salir rotando**.
+> Antes esto bloqueaba **todo** el movimiento y era un softlock. Se corrigió:
+> el movimiento tiene que sentirse libre; lo único que se impide es romper
+> la ilusión. Si intentás cruzar estando tapado, la consola avisa.
 
 Cuando cruces, el paso se siente distinto a propósito: dura más y el
 personaje describe un arco alto. Es la única pista que da el sistema de que
@@ -67,7 +99,10 @@ acabás de hacer algo que no era obvio. Por la terminal sale
 - **¿La rotación se lee?** Tiene que dar tiempo a ver *qué* cambió sin
   aburrir. Ajustable: `DURACION_GIRO` (hoy `0.38`).
 - **¿Se ven las dos islas siempre?** Es requisito: el acertijo se resuelve
-  comparándolas. Si alguna se sale de cuadro, subir `TAMANO_CAMARA`.
+  comparándolas. Si alguna se sale de cuadro, subir `tamano_camara` de esa
+  zona.
+- **¿El viaje entre zonas se siente como un salto?** RR lo pidió como
+  "saltos de cámara". Ajustable: `DURACION_VIAJE` (hoy `0.55`).
 
 ## El nivel está verificado matemáticamente
 
@@ -77,11 +112,13 @@ buscó por barrido de parámetros con BFS, replicando `proyeccion.js` y
 
 | Propiedad | Valor |
 |---|---|
-| Superficie caminable | 72 celdas (2 islas de 6×6) |
+| Superficie caminable (ciudad) | 72 celdas (2 islas de 6×6) |
 | Rotaciones que resuelven | **solo la 0** |
 | Rotación inicial | 2 (no resuelve → hay acertijo) |
 | Salto del puente | 22 celdas de mundo |
 | Celdas tapadas en rot. 0 | 16 (las islas se funden en pantalla) |
+
+La luna tiene su propio acertijo, verificado igual y por separado.
 
 El dato que mejor muestra el efecto Magic Eye: el nivel entero ocupa
 **7.07 × 5.72** unidades de pantalla en la rotación 0 (todo superpuesto) y
@@ -93,22 +130,25 @@ mudas si nadie las comprueba:
 
 1. El objetivo queda **inalcanzable** en las cuatro rotaciones.
 2. El objetivo se alcanza **ya en la rotación inicial** → no es acertijo.
-3. Una celda queda **tapada en las cuatro rotaciones** → quien pise ahí no
-   puede moverse ni salir rotando: trabado para siempre.
+3. *(aviso, ya no falla)* Una celda que no se ve en **ninguna** rotación.
+   Dejó de ser un softlock cuando el bloqueo pasó a impedir solo el salto,
+   pero sigue siendo un olor de diseño: el jugador puede pararse donde no
+   se lo ve nunca.
 
-> La tercera es la más traicionera porque **el BFS no la detecta**: explora
-> dentro de una rotación fija, nunca rota, así que jamás se topa con el
-> caso "quedé tapado al rotar". Tiene su propia comprobación aparte.
+> El BFS **no puede detectar la tercera**: explora dentro de una rotación
+> fija, nunca rota, así que jamás se topa con el caso "quedé tapado al
+> rotar". Tiene su propia comprobación aparte.
 
-> ⚠️ **Los números del nivel (`AREAS`, `CENTRO`) no se tocan a ojo.** Mover
-> una isla UNA celda puede romper el acertijo en cualquiera de las dos
-> direcciones. Si los cambiás, mirá lo que dice `[nivel]` en la consola.
+> ⚠️ **Los números de cada zona no se tocan a ojo** (`_definir_zonas()` en
+> `mundo.gd`). Mover una isla UNA celda puede romper el acertijo en
+> cualquiera de las dos direcciones. Si los cambiás, mirá lo que dice
+> `[nivel]` en la consola, o corré `herramientas/verificar_nivel.py`.
 
 ## Las dos trampas que este código evita a propósito
 
-**1. Los dos contadores de rotación.** `_giro_continuo` nunca da la vuelta
-(…, -1, 0, 1, 2, 3, 4, …) y sirve para animar; `rotacion` es ese valor
-módulo 4 y es el que usa la matemática. Con un solo contador módulo 4,
+**1. Los dos contadores de rotación.** El giro guardado por zona nunca da
+la vuelta (…, -1, 0, 1, 2, 3, 4, …) y sirve para animar; `_rotacion()` es
+ese valor módulo 4 y es el que usa la matemática. Con un solo contador,
 pasar de la rotación 3 a la 0 hacía girar el mundo **270° hacia atrás** en
 vez de 90° adelante. Costó caro: 815% de desviación medida en pantalla, y
 se sospechó de la proyección, que estaba bien (`INFORME.md` §6).
@@ -165,7 +205,8 @@ escenas/Mundo.tscn       raíz + cámara + sol
 scripts/proyeccion.gd    LA MATEMÁTICA: la ambigüedad isométrica (A, B)
 scripts/navegacion.gd    LA REGLA: "puedes pisar lo que se ve pegado a ti"
 scripts/personaje.gd     movimiento por celdas discretas + animación del paso
-scripts/mundo.gd         el nivel, el pivote que rota, la cámara, la entrada
+scripts/mundo.gd         las zonas, los pivotes que rotan, el viaje de cámara
+herramientas/            validar niveles sin abrir Godot (ver su README)
 ```
 
 `proyeccion.gd` y `navegacion.gd` son **datos puros**: no saben de mallas ni

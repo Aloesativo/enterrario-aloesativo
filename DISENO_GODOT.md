@@ -193,7 +193,51 @@ Derecha→NE, Abajo→SE, Izquierda→SO) — la horaria se probó y se sentía
 
 ---
 
+## 5 bis bis. CORRECCIÓN: zonas modulares + ilusión de cámara (2026-08-10)
+
+**Decisión de RR, y reemplaza la lectura literal de §5 de abajo.**
+
+§5 decía "un único volumen 3D donde los espacios están superpuestos". RR lo
+corrigió al ver el prototipo andando:
+
+> Cada espacio de Burdeo es un espacio en sí mismo, prediseñado. La ilusión
+> de que todos están en el mismo diorama se da con **saltos de cámara** —
+> es solo ilusión, porque son espacios tridimensionales distintos. Eso da
+> además la ventaja de que sea **modular**.
+
+**Por qué es mejor, con evidencia concreta.** Se intentó primero la lectura
+literal (todas las zonas del lore en un mismo sistema de coordenadas) y
+falló por dos motivos medidos:
+
+1. **Encuadre imposible.** El mundo entero orbita dentro de un disco
+   alrededor del centro de giro: hacía falta una cámara de **36 unidades**,
+   con todo diminuto.
+2. **Restricciones globales acopladas.** Cada zona tenía que abrirse en una
+   rotación distinta *a la vez*. Un intento falló porque luna y cometa se
+   abrían las dos en la rotación 0. Mover una zona rompe otra — no se puede
+   diseñar a mano ni escala.
+
+Con zonas modulares, **cada una se valida sola** (comprobado: ciudad, luna
+y playa validan por separado sin interferirse). Agregar una zona no puede
+romper las demás.
+
+**Lo que NO cambia:** el estereograma (§2) sigue viviendo *dentro* de cada
+zona — rotación, alineaciones, puentes imposibles. Lo que ocurre *entre*
+zonas es viaje de cámara, otro mecanismo. Los dos conviven sin pisarse.
+
+**Cómo se implementa hoy:** todas las zonas existen en la misma escena,
+separadas en el espacio, cada una con su propio pivote de giro y su propia
+rotación recordada. La cámara viaja entre ellas. Se cambia de zona pisando
+una celda de salida (portal), coherente con "portales estilo Death's Door"
+de `IDEAS_DISENO.md`.
+
+---
+
 ## 5. El mundo: uno solo, superpuesto, acotado
+
+> ⚠️ Leer §5 bis bis (arriba) antes que esta sección: la superposición
+> resultó ser una **ilusión de cámara entre zonas modulares**, no un
+> volumen literal compartido.
 
 **No son lugares separados conectados por viajes.** Es un único volumen
 3D donde los espacios del lore están **superpuestos**, ocupando el mismo
