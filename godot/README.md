@@ -5,93 +5,126 @@
 > que vas a escribir no está en ese documento, no se escribe: se propone,
 > se acuerda, se anota, y recién después se construye.
 
-## Estado: ETAPA 2 — la cámara isométrica fija
+## Estado: ETAPAS 3 y 4 — EL JUEGO
 
-✅ **Etapa 1 verificada por RR:** el personaje camina por celdas discretas.
+✅ Etapas 1 y 2 verificadas por RR (caminar por celdas, cámara isométrica).
 
-Ahora la grilla es de 21×21 —más grande que la pantalla, a propósito— y la
-cámara **sigue al personaje sin girar nunca**.
+Se hicieron las dos juntas porque por separado no se sienten a nada: una
+grilla plana que se recorre es un tablero de ajedrez, y rotar un plano sin
+relieve tampoco muestra nada. **Lo que convierte esto en un juego es que
+haya un lugar imposible de alcanzar que, al rotar, se vuelve alcanzable.**
 
-> La grilla creció porque si cupiera entera en pantalla, una cámara que
-> sigue sería indistinguible de una fija, y no habría forma de probar esta
-> etapa.
-
-### Cómo probarlo
+### Cómo jugarlo
 
 1. Abrir `godot/project.godot` con Godot 4.x (NO la raíz del repo).
-2. F5 / Play. Arranca en `escenas/Mundo.tscn`.
-3. Mover con flechas del teclado, o D-pad, o stick izquierdo de un control
-   (PS o Xbox — funciona de fábrica, sin configurar nada).
+2. F5 / Play.
 
-### Qué mirar en esta etapa
-
-- **¿La vista se ve plana / 2.5D?** Ese achatamiento es el core del juego
-  (§2): el mundo tiene que parecer casi un dibujo plano. Si se ve con
-  profundidad "de 3D normal", algo está mal.
-- **¿La cámara gira o se inclina alguna vez?** No debería, jamás, por
-  ningún motivo. Si la ves girar, es un bug grave — esa rigidez es la
-  condición de que el acertijo se pueda leer.
-- **¿Cabecea al caminar?** No debería. El personaje sube un arquito en
-  cada paso, pero la cámara ignora la altura a propósito.
-- **¿El seguimiento se siente bien?** Ajustable con `VELOCIDAD_CAMARA` en
-  `scripts/mundo.gd` (hoy `9.0`; más alto = más pegada).
-
-### Sigue valiendo de la etapa 1
-
-- El paso es discreto (de casilla a casilla, nunca deslizándose).
-- Un empujón durante la animación no se descarta: queda en cola.
-- Los controles andan sin configurar nada.
-
-### ⚠️ Decisión a evaluar: un paso por empujón
-
-**Mantener apretado NO camina solo.** Hay que soltar y volver a empujar
-por cada paso — y con el stick, hay que devolverlo a la zona muerta.
-
-Está implementado así porque `DISENO_GODOT.md` §3 lo dice literal (*"el
-stick da UN paso por empujón, no un chorro continuo"*), pero puede que en
-la mano se sienta tedioso. **Es exactamente el tipo de cosa que esta etapa
-existe para detectar.** Si molesta, decilo: cambiarlo a "mantener apretado
-camina" es una línea (`is_action_just_pressed` → `is_action_pressed`).
-
-### Números para tocar
-
-Están arriba de todo en `scripts/personaje.gd`, juntos a propósito:
-
-| Constante | Hoy | Qué hace |
+| | Teclado | Control |
 |---|---|---|
-| `DURACION_PASO` | `0.16` s | cuánto dura el paso |
-| `ALTURA_ARCO` | `0.12` | cuánto se levanta a mitad de paso |
+| **Caminar** | Flechas | Stick izquierdo / D-pad |
+| **Rotar el mundo** | `A` y `D` | `LB` y `RB` |
 
-> ⚠️ **No hagas el paso lento para darle peso.** `DISENO_GODOT.md` §6: el
-> peso va en la textura del paso (arco, aterrizaje, sonido), nunca en la
-> duración. Un paso lento vuelve tedioso probar rotaciones, y probar
-> rotaciones es el core del juego.
+### El acertijo
 
-## Qué NO está, a propósito
+Hay **dos islas**: la orilla (donde arrancás, abajo) y el mirador (arriba,
+a 7 de altura), con una **esfera dorada** encima que marca el objetivo.
 
-Rotación del mundo, relieve/alturas, el estereograma, el zoom-cuerda, el
-tilt-shift, las zonas del lore, el cometa, sonido, arte. **Todo eso son
-etapas 3 a 7** (`DISENO_GODOT.md` §10) y meterlas ahora sería repetir el
-error que ya rompió dos prototipos: construir mucho de una vez sin poder
-verificar nada.
+Están separadas por un abismo real de **22 celdas**. No hay puente, no hay
+rampa, no hay escalera. Desde la rotación en la que arrancás, el mirador es
+sencillamente **inalcanzable**.
 
-**La próxima es la etapa 3:** rotar el mundo 90° exactos con A/D y los
-bumpers, con dos contadores desde el día uno (uno continuo para animar,
-uno módulo 4 para la matemática) — si no, reaparece el bug de girar 270°
-por el camino largo que ya costó caro una vez (§2).
+**Rotá el mundo** y mirá qué pasa con las dos islas en pantalla. En una de
+las cuatro rotaciones —y solo en una— se ven *pegadas*. Y si se ven
+pegadas, se pueden pisar.
+
+> Esa es la regla entera del juego, sin excepciones:
+> **puedes pisar lo que se ve pegado a ti.**
+> No lo que está al lado en el mundo — lo que está al lado en la PANTALLA.
+
+Cuando cruces, el paso se siente distinto a propósito: dura más y el
+personaje describe un arco alto. Es la única pista que da el sistema de que
+acabás de hacer algo que no era obvio. Por la terminal sale
+`¡PUENTE IMPOSIBLE!` con el salto real en celdas.
+
+### Qué mirar
+
+- **¿Se entiende el truco?** ¿Se ve que en una rotación las islas se juntan?
+- **¿El cruce se siente distinto a caminar?** Debería sentirse raro, casi
+  ilegal.
+- **¿La rotación se lee?** Tiene que dar tiempo a ver *qué* cambió sin
+  aburrir. Ajustable: `DURACION_GIRO` (hoy `0.38`).
+- **¿Se ven las dos islas siempre?** Es requisito: el acertijo se resuelve
+  comparándolas. Si alguna se sale de cuadro, subir `TAMANO_CAMARA`.
+
+## El nivel está verificado matemáticamente
+
+No pude correr Godot, **pero sí pude correr la matemática**. El nivel se
+buscó por barrido de parámetros con BFS, replicando `proyeccion.js` y
+`navegacion.js`, y cumple:
+
+| Propiedad | Valor |
+|---|---|
+| Superficie caminable | 72 celdas (2 islas de 6×6) |
+| Rotaciones que resuelven | **solo la 0** |
+| Rotación inicial | 2 (no resuelve → hay acertijo) |
+| Salto del puente | 22 celdas de mundo |
+| Celdas tapadas en rot. 0 | 16 (las islas se funden en pantalla) |
+
+El dato que mejor muestra el efecto Magic Eye: el nivel entero ocupa
+**7.07 × 5.72** unidades de pantalla en la rotación 0 (todo superpuesto) y
+**17.15** de alto en la rotación 2 (todo desplegado). Es el mismo mundo.
+
+Además, `Navegacion.validar()` **vuelve a comprobarlo en cada arranque** y
+avisa por consola. Un nivel se rompe de dos formas y las dos son mudas:
+que el objetivo quede inalcanzable en las cuatro rotaciones, o que ya se
+alcance en la inicial (entonces no es acertijo).
+
+> ⚠️ **Los números del nivel (`AREAS`, `CENTRO`) no se tocan a ojo.** Mover
+> una isla UNA celda puede romper el acertijo en cualquiera de las dos
+> direcciones. Si los cambiás, mirá lo que dice `[nivel]` en la consola.
+
+## Las dos trampas que este código evita a propósito
+
+**1. Los dos contadores de rotación.** `_giro_continuo` nunca da la vuelta
+(…, -1, 0, 1, 2, 3, 4, …) y sirve para animar; `rotacion` es ese valor
+módulo 4 y es el que usa la matemática. Con un solo contador módulo 4,
+pasar de la rotación 3 a la 0 hacía girar el mundo **270° hacia atrás** en
+vez de 90° adelante. Costó caro: 815% de desviación medida en pantalla, y
+se sospechó de la proyección, que estaba bien (`INFORME.md` §6).
+
+**2. Rotaciones con enteros, sin senos ni cosenos.** La comparación entre
+dos posiciones de pantalla es de **igualdad exacta**. Con trigonometría, el
+error de coma flotante haría que el puente apareciera y desapareciera de
+forma intermitente — el peor tipo de bug, el que parece un fantasma.
+
+Y una tercera, corregida al portar: `navegacion.js` decidía qué celda se ve
+(cuando dos caen en el mismo píxel) comparando `x + z` **sin rotar**, lo
+cual solo vale en la rotación 0. Acá se compara la **altura**, que es
+equivalente y correcto en las cuatro — la demostración está en el comentario
+de `navegacion.gd`.
 
 ## La regla que no se rompe
 
-`scripts/personaje.gd` **no** es un `CharacterBody3D`, **no** usa
-`move_and_slide()`, **no** tiene gravedad ni velocidad continua. El estado
-del personaje es una celda entera (`Vector2i`).
+`personaje.gd` **no** es un `CharacterBody3D`, **no** usa `move_and_slide()`,
+**no** tiene gravedad ni velocidad continua. El estado del personaje es una
+celda entera (`Vector3i`).
 
-No es preferencia de estilo: la regla del juego ("puedes pisar lo que se
-ve pegado a ti", etapa 4) compara posiciones en pantalla buscando igualdad
-**exacta**, y con posiciones continuas esa igualdad no ocurre nunca. Ver
-`DISENO_GODOT.md` §3 — es la causa raíz del último prototipo roto.
+No es preferencia de estilo: la regla del juego compara posiciones en
+pantalla buscando igualdad **exacta**, y con posiciones continuas esa
+igualdad no ocurre nunca. Ver `DISENO_GODOT.md` §3 — es la causa raíz del
+prototipo que hubo que tirar.
 
-Lo que sí es continuo es la **animación**. Lo discreto es el estado.
+Lo continuo es la **animación**. Lo discreto es el estado.
+
+## Qué NO está, a propósito
+
+- **La revelación** (la cámara que se suelta, la portada, la canción). Por
+  ahora llegar al mirador solo apaga la baliza e imprime un mensaje.
+- El zoom-cuerda y el dashboard (etapa 6), el tilt-shift (etapa 7).
+- Las zonas del lore, el cometa, las épocas, el arte, el sonido.
+- Identidad visual: todo gris neutro. El contraste entre celdas vecinas
+  **sí** es funcional (sin él no se pueden contar celdas, y contar celdas
+  es como se lee la alineación), no decorativo.
 
 ## Si algo falla
 
@@ -100,44 +133,19 @@ escribió leyendo, sin ejecutar. Si tira un error:
 
 **copiar el mensaje de la terminal tal cual, sin resumirlo.**
 
-Hay `print()` de diagnóstico al arrancar; corriendo el proyecto desde la
-terminal aparecen directo en la consola.
+Al arrancar imprime el estado del nivel, y cada rotación y cada puente
+salen por consola.
 
 ## Archivos
 
 ```
-project.godot           escena principal: escenas/Mundo.tscn
-escenas/Mundo.tscn      raíz + cámara + sol (lo demás se construye por código)
-scripts/mundo.gd        arma la grilla, el personaje y la cámara; lee la entrada
-scripts/personaje.gd    LA REGLA: movimiento por celdas discretas
+project.godot            escena principal: escenas/Mundo.tscn
+escenas/Mundo.tscn       raíz + cámara + sol
+scripts/proyeccion.gd    LA MATEMÁTICA: la ambigüedad isométrica (A, B)
+scripts/navegacion.gd    LA REGLA: "puedes pisar lo que se ve pegado a ti"
+scripts/personaje.gd     movimiento por celdas discretas + animación del paso
+scripts/mundo.gd         el nivel, el pivote que rota, la cámara, la entrada
 ```
 
-> **Nota de rendimiento, para más adelante:** hoy cada celda del piso es un
-> `MeshInstance3D` aparte (21×21 = 441 nodos). A esta escala no importa,
-> pero si la grilla crece mucho, la salida estándar es `MultiMeshInstance3D`
-> (el equivalente en Godot del `InstancedMesh` que menciona `INFORME.md`
-> §9.4). No hace falta todavía.
-
-## Cómo se garantiza que la cámara no gire
-
-No por disciplina, **por construcción**: la cámara se orienta una sola vez
-en `_colocar_camara()` (con un `look_at`) y a partir de ahí el código solo
-le cambia la **posición**, nunca la rotación. No hay ninguna línea que
-pueda girarla por accidente.
-
-El ángulo es el isométrico **verdadero** (elevación 35.264°, azimut 45°),
-y no está escrito a mano: sale solo de poner la cámara en
-`objetivo + (k, k, k)` mirando al objetivo — la dirección de vista queda
-`(-1,-1,-1)/√3`, o sea `asin(1/√3) = 35.264°`.
-
-**Suavizar el seguimiento es seguro para el acertijo.** Con una cámara
-ortográfica de rotación fija, trasladarla no cambia las posiciones
-relativas en pantalla entre dos objetos del mundo — solo rotarla las
-cambiaría. Por eso el suavizado no puede romper la lectura de las
-alineaciones.
-
-> **Corrección de una imprecisión del README anterior:** ahí decía que la
-> matemática de proyección (`proyeccion.js`) era lo que definía la etapa 2.
-> No es así — según `DISENO_GODOT.md` §10, la etapa 2 es solo la cámara.
-> La proyección se necesita para la **etapa 4** (la regla "puedes pisar lo
-> que se ve pegado a ti").
+`proyeccion.gd` y `navegacion.gd` son **datos puros**: no saben de mallas ni
+de nodos. Es la misma separación en capas que rige en `src/` (`CLAUDE.md`).

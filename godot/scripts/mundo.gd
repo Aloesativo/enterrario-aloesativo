@@ -1,178 +1,343 @@
 extends Node3D
-## ETAPAS 1-2 del plan (ver DISENO_GODOT.md §10).
+## ETAPAS 3 y 4 del plan (ver DISENO_GODOT.md §10): la rotación en pasos
+## exactos y EL ESTEREOGRAMA — la regla "puedes pisar lo que se ve pegado
+## a ti".
 ##
-## Etapa 1: un personaje que camina por celdas sobre una grilla plana.
-## Etapa 2: la cámara isométrica fija, que sigue al personaje SIN GIRAR.
+## Esta es la etapa donde el juego existe o no existe. Todo lo anterior era
+## andamiaje: una grilla plana que se recorría es un tablero de ajedrez, no
+## un mundo. Lo que lo convierte en juego es que haya un lugar imposible de
+## alcanzar que, al rotar, se vuelve alcanzable.
 ##
-## Sin relieve, sin rotación del mundo, sin zoom, sin arte — todo eso son
-## etapas 3 en adelante y a propósito no está.
+## Estructura de nodos:
+##   Mundo (este script)
+##     Camara .......... FUERA del pivote: nunca rota, nunca se mueve
+##     Sol
+##     Pivote .......... el mundo que gira en pasos de 90°
+##       Isla_* ........ las losas del nivel
+##       Personaje
+##       Baliza ........ marca el objetivo
 
-## La grilla es más grande que lo que entra en pantalla, a propósito: si
-## cupiera entera, una cámara que sigue al personaje sería indistinguible
-## de una fija y la etapa 2 no se podría probar.
-const LADO_GRILLA := 21
+# ---------------------------------------------------------------- el nivel
 
-# El tamaño de celda vive en personaje.gd y se lee de ahí (Personaje.TAM):
-# si estuviera escrito en los dos lados, un día alguien cambia uno y el
-# piso deja de coincidir con los pasos, sin que nada avise.
+## Las dos islas, como rectángulos de celdas. Se declaran así (y no celda a
+## celda) para poder mover una isla entera cambiando un número.
+##
+## ⚠️ ESTOS NÚMEROS NO SE TOCAN A OJO. La alineación isométrica es exacta y
+## frágil: mover una isla UNA celda puede abrir el puente en las cuatro
+## rotaciones (deja de ser acertijo) o cerrarlo en todas (deja de tener
+## solución). Las dos fallas son mudas.
+##
+## Esta configuración se encontró por barrido de parámetros con BFS y está
+## verificada: el objetivo se alcanza SOLO en la rotación 0, el puente salta
+## 22 celdas de mundo, y en la rotación 0 hay 16 celdas tapadas por otras
+## (eso es el efecto Magic Eye: las islas se funden en pantalla).
+## `Navegacion.validar()` lo vuelve a comprobar en cada arranque.
+const AREAS := [
+	{"id": "orilla", "x0": 0, "x1": 5, "z0": 0, "z1": 5, "y": 0},
+	{"id": "mirador", "x0": 9, "x1": 14, "z0": 9, "z1": 14, "y": 7},
+]
 
-## Cámara: ángulo isométrico VERDADERO.
-##
-## Con la cámara en centro + (k, k, k) mirando al centro, la dirección de
-## vista es (-1,-1,-1)/√3, o sea una elevación de asin(1/√3) = 35.264° —
-## exactamente el ángulo isométrico real — y un azimut de 45°. No hace
-## falta escribir el ángulo a mano: sale solo de que las tres componentes
-## sean iguales.
-const DISTANCIA_CAMARA := 24.0
+## Centro de giro del nivel: (x, z) del mundo en un Vector2i.
+const CENTRO := Vector2i(7, 7)
+const PARTIDA := Vector3i(0, 0, 0)
+const OBJETIVO := Vector3i(14, 7, 14)
 
-## Alto visible en unidades de mundo (Godot mide `size` sobre el alto).
-## Con 12 se ve una porción de la grilla, no toda: por eso la cámara tiene
-## que seguir al personaje.
-const TAMANO_CAMARA := 12.0
+## Se arranca en una rotación desde la que el objetivo NO se alcanza: si se
+## alcanzara, no habría acertijo. Es la 2, la opuesta a la que resuelve.
+const ROTACION_INICIAL := 2
 
-## Suavizado del seguimiento. Más alto = más pegada al personaje.
-##
-## Suavizar es SEGURO para el acertijo, y conviene tenerlo claro: con una
-## cámara ortográfica de rotación fija, mover la cámara NO cambia las
-## posiciones relativas en pantalla entre dos objetos del mundo. Solo
-## rotarla las cambiaría — y la cámara no rota nunca (§4).
-const VELOCIDAD_CAMARA := 9.0
+# -------------------------------------------------------------- la cámara
 
-## Mapeo de teclas a pasos de celda.
+const DISTANCIA_CAMARA := 40.0
+
+## La cámara NO sigue al personaje en esta etapa, y es a propósito.
 ##
-## Derivación (no cambiar sin rehacerla): con la cámara de arriba,
-##   +X en el mundo se ve hacia el SE de la pantalla
-##   -X                                NO
-##   +Z                                SO
-##   -Z                                NE
-##
-## DISENO_GODOT.md §4 fija la asignación ANTIHORARIA como la intuitiva
-## (la horaria se probó y se sentía "rotada"):
-##   Arriba → NO,  Derecha → NE,  Abajo → SE,  Izquierda → SO
-##
-## Combinando ambas cosas salen los deltas de abajo. `celda.x` es la celda
-## en el eje X del mundo y `celda.y` la del eje Z.
-##
-## Se usan las acciones ui_* que Godot trae de fábrica: cubren flechas del
-## teclado, D-pad y stick izquierdo de cualquier control (PS/Xbox) sin que
-## RR tenga que configurar nada. Eso es requisito duro (§4: cero UI, todo
-## pre-mapeado).
+## Medido sobre este nivel: en la rotación 2 ocupa 17.15 unidades de alto y
+## en la 1 y la 3 ocupa 19.8 de ancho. Con la vista centrada en el
+## personaje, una de las dos islas se saldría de cuadro — y el acertijo se
+## resuelve COMPARANDO las dos islas. Si no se ven juntas, no hay nada que
+## leer. El seguimiento vuelve cuando el mundo sea más grande que la
+## pantalla.
+const TAMANO_CAMARA := 20.0
+
+## Duración del giro de 90°. Lento se vuelve tedioso (hay que rotar mucho
+## para explorar); instantáneo no deja ver QUÉ cambió, que es justamente lo
+## que el jugador tiene que aprender a leer.
+const DURACION_GIRO := 0.38
+
+# ------------------------------------------------------------- movimiento
+
+## Flechas/D-pad/stick a las cuatro diagonales de la pantalla.
+## Asignación antihoraria (DISENO_GODOT.md §4), ya verificada por RR en la
+## etapa 1: Arriba→NO, Derecha→NE, Abajo→SE, Izquierda→SO.
 const DIRECCIONES := {
-	"ui_up": Vector2i(-1, 0),
-	"ui_right": Vector2i(0, -1),
-	"ui_down": Vector2i(1, 0),
-	"ui_left": Vector2i(0, 1),
+	"ui_up": "NO",
+	"ui_right": "NE",
+	"ui_down": "SE",
+	"ui_left": "SO",
 }
 
 @onready var _camara: Camera3D = $Camara
 
+var _pivote: Node3D
 var _personaje: Personaje
-var _offset_camara := Vector3.ZERO
+var _baliza: Node3D
+var _nav: Navegacion
+
+## LOS DOS CONTADORES. Esto no es redundancia: es la corrección de un bug
+## real y caro (INFORME.md §6).
+##
+## `_giro_continuo` nunca da la vuelta: 0, 1, 2, 3, 4, 5... o -1, -2...
+## Sirve para ANIMAR, y como siempre crece o decrece de a uno, el ángulo
+## destino está siempre a 90° del actual: la animación nunca puede tomar
+## el camino largo.
+##
+## `rotacion` es el mismo valor módulo 4, y es el que usa la MATEMÁTICA.
+##
+## Con un solo contador módulo 4, pasar de la rotación 3 a la 0 hacía girar
+## el mundo 270° hacia atrás en vez de 90° hacia delante. La medición en
+## pantalla dio 815% de desviación y se sospechó de la proyección, que
+## estaba bien.
+var _giro_continuo := 0
+
+var _rotando := false
+var _t_giro := 0.0
+var _angulo_desde := 0.0
+var _angulo_hasta := 0.0
+
+var _cola_direccion := ""
+var _descubierto := false
+var _tiempo := 0.0
+
+## La rotación que usa la matemática de alineación. Siempre 0..3.
+var rotacion: int:
+	get:
+		return posmod(_giro_continuo, Proyeccion.ROTACIONES)
 
 func _ready() -> void:
-	_construir_piso()
+	var bloques := _construir_bloques()
+	_nav = Navegacion.new(bloques, CENTRO)
+
+	_pivote = Node3D.new()
+	_pivote.name = "Pivote"
+	# El pivote se planta EN el centro de giro para que rotarlo gire el
+	# nivel sobre ese centro, que es el mismo que usa la matemática.
+	_pivote.position = Vector3(CENTRO.x * Personaje.TAM, 0.0, CENTRO.y * Personaje.TAM)
+	add_child(_pivote)
+
+	_construir_islas(bloques)
 	_construir_personaje()
+	_construir_baliza()
 	_colocar_camara()
-	print("[mundo] etapas 1-2 listas — grilla %dx%d, personaje en %s" % [
-		LADO_GRILLA, LADO_GRILLA, _personaje.celda,
-	])
-	print("[mundo] cámara isométrica fija: se orienta una vez y ya no gira nunca")
 
-func _construir_piso() -> void:
-	# Damero de dos grises para que cada celda se distinga de la vecina y el
-	# paso se vea como un salto de casilla, no como un deslizamiento.
-	# Grises neutros a propósito: la identidad visual la define RR (§11).
-	var claro := StandardMaterial3D.new()
-	claro.albedo_color = Color(0.62, 0.62, 0.62)
-	var oscuro := StandardMaterial3D.new()
-	oscuro.albedo_color = Color(0.52, 0.52, 0.52)
+	_giro_continuo = ROTACION_INICIAL
+	_pivote.rotation.y = _angulo_de(_giro_continuo)
 
+	print("[mundo] etapas 3-4 — %d celdas, arranca en rotación %d" % [bloques.size(), rotacion])
+	_nav.validar(PARTIDA, OBJETIVO, ROTACION_INICIAL)
+	print("[mundo] mover: flechas/stick — rotar: A y D, o los bumpers (LB/RB)")
+
+func _construir_bloques() -> Array:
+	var bloques: Array = []
+	for area in AREAS:
+		var y := int(area["y"])
+		for x in range(int(area["x0"]), int(area["x1"]) + 1):
+			for z in range(int(area["z0"]), int(area["z1"]) + 1):
+				bloques.append(Vector3i(x, y, z))
+	return bloques
+
+# ------------------------------------------------------------- construcción
+
+func _construir_islas(bloques: Array) -> void:
+	# Losas delgadas a propósito: dejan ver la altura de cada isla, que es
+	# la información con la que se juega.
 	var malla := BoxMesh.new()
-	malla.size = Vector3(Personaje.TAM * 0.94, 0.2, Personaje.TAM * 0.94)
+	malla.size = Vector3(Personaje.TAM * 0.94, 0.25, Personaje.TAM * 0.94)
 
-	var piso := Node3D.new()
-	piso.name = "Piso"
-	add_child(piso)
+	# Dos grises que se alternan en damero. Esto NO es decoración: sin el
+	# contraste entre celdas vecinas no se puede contar cuántas celdas hay
+	# entre una cosa y otra, y contar celdas es como se lee la alineación.
+	# La identidad visual la define RR; acá solo hay legibilidad (§6 ter).
+	var claro := StandardMaterial3D.new()
+	claro.albedo_color = Color(0.66, 0.66, 0.66)
+	var oscuro := StandardMaterial3D.new()
+	oscuro.albedo_color = Color(0.54, 0.54, 0.54)
 
-	for x in LADO_GRILLA:
-		for z in LADO_GRILLA:
-			var celda := MeshInstance3D.new()
-			celda.mesh = malla
-			celda.material_override = oscuro if (x + z) % 2 == 0 else claro
-			# La cara de arriba de la losa queda en y=0: ese es el suelo
-			# sobre el que se para el personaje.
-			celda.position = Vector3(x * Personaje.TAM, -0.1, z * Personaje.TAM)
-			piso.add_child(celda)
+	var islas := Node3D.new()
+	islas.name = "Islas"
+	_pivote.add_child(islas)
+
+	for celda in bloques:
+		var c: Vector3i = celda
+		var losa := MeshInstance3D.new()
+		losa.mesh = malla
+		losa.material_override = oscuro if (c.x + c.z) % 2 == 0 else claro
+		# La cara de arriba de la losa queda a la altura de la celda: ahí
+		# es donde se apoya el personaje.
+		losa.position = Personaje.posicion_local(c, CENTRO) - Vector3(0, 0.125, 0)
+		islas.add_child(losa)
 
 func _construir_personaje() -> void:
 	_personaje = Personaje.new()
 	_personaje.name = "Personaje"
-	add_child(_personaje)
+	_pivote.add_child(_personaje)
 
 	var malla := MeshInstance3D.new()
 	var capsula := CapsuleMesh.new()
-	capsula.radius = 0.25
-	capsula.height = 0.9
+	capsula.radius = 0.28
+	capsula.height = 1.0
 	malla.mesh = capsula
 	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.80, 0.80, 0.85)
+	material.albedo_color = Color(0.85, 0.85, 0.9)
 	malla.material_override = material
-	# El nodo del personaje está a ras de suelo (y=0); la cápsula se sube
-	# su media altura para apoyarse encima en vez de quedar hundida.
-	malla.position = Vector3(0, 0.45, 0)
-	malla.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	malla.position = Vector3(0, 0.5, 0)
 	_personaje.add_child(malla)
 
-	var centro := LADO_GRILLA / 2
-	_personaje.configurar(Vector2i(centro, centro), _puede_pisar)
+	_personaje.configurar(PARTIDA, CENTRO)
+	_personaje.paso_terminado.connect(_al_terminar_paso)
 
-## Etapa 1: lo único que limita el paso son los bordes de la grilla. La
-## regla de verdad ("puedes pisar lo que se ve pegado a ti") es la etapa 4.
-func _puede_pisar(celda: Vector2i) -> bool:
-	return celda.x >= 0 and celda.x < LADO_GRILLA \
-		and celda.y >= 0 and celda.y < LADO_GRILLA
+func _construir_baliza() -> void:
+	# Marca el objetivo para que haya algo que buscar. El color reutiliza el
+	# placeholder de baliza que ya existía en src/theme/default.json — no es
+	# una elección de identidad visual del agente, que no le corresponde.
+	_baliza = Node3D.new()
+	_baliza.name = "Baliza"
+	_baliza.position = Personaje.posicion_local(OBJETIVO, CENTRO)
+	_pivote.add_child(_baliza)
 
-## La cámara se ORIENTA UNA SOLA VEZ, acá, y después nunca más: en
-## _process solo se le cambia la posición. Así "no gira nunca" queda
-## garantizado por construcción y no por acordarse de no hacerlo.
-##
-## Su rigidez no es pereza: es la condición de que el acertijo se pueda
-## leer (§4). Si la cámara se moviera sola, las alineaciones cambiarían sin
-## que el jugador lo pidiera.
+	var malla := MeshInstance3D.new()
+	var forma := SphereMesh.new()
+	forma.radius = 0.3
+	forma.height = 0.6
+	malla.mesh = forma
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.878, 0.753, 0.376)
+	material.emission_enabled = true
+	material.emission = Color(0.878, 0.753, 0.376)
+	material.emission_energy_multiplier = 1.5
+	malla.material_override = material
+	_baliza.add_child(malla)
+
 func _colocar_camara() -> void:
-	_offset_camara = Vector3.ONE * DISTANCIA_CAMARA
-
-	var objetivo := _objetivo_camara()
 	_camara.projection = Camera3D.PROJECTION_ORTHOGONAL
 	_camara.size = TAMANO_CAMARA
-	_camara.position = objetivo + _offset_camara
+	var objetivo := _centro_visual()
+	_camara.position = objetivo + Vector3.ONE * DISTANCIA_CAMARA
 	_camara.look_at(objetivo, Vector3.UP)
 	_camara.current = true
 
-## A dónde mira la cámara: el personaje, pero SOLO en el plano horizontal.
-##
-## Importante: se descarta la altura. Durante el paso, personaje.position.y
-## sube por el arco del salto; si la cámara siguiera eso, cabecearía en
-## cada paso — justo lo que la etapa 2 pide que no pase ("nada la mueve
-## por accidente").
-func _objetivo_camara() -> Vector3:
-	var p := _personaje.position
-	return Vector3(p.x, 0.0, p.z)
+## El punto que deja el nivel centrado en pantalla en LAS CUATRO
+## rotaciones. Es el centro de la caja del nivel: su proyección da
+## A=0 y B=7 en todas, o sea siempre el mismo punto de la imagen.
+func _centro_visual() -> Vector3:
+	var alto_max := 0
+	for area in AREAS:
+		alto_max = maxi(alto_max, int(area["y"]))
+	return Vector3(
+		CENTRO.x * Personaje.TAM,
+		alto_max * Personaje.ALTO * 0.5,
+		CENTRO.y * Personaje.TAM
+	)
+
+# ------------------------------------------------------------------ giro
+
+func _angulo_de(giro: int) -> float:
+	# Signo negativo: la rotación r de la matemática — (dx,dz) -> (-dz,dx)
+	# para r=1 — equivale a girar -90° alrededor de +Y en Godot.
+	return -PI * 0.5 * giro
+
+func _rotar(sentido: int) -> void:
+	if _rotando or _personaje.animando:
+		return
+	_giro_continuo += sentido
+	_angulo_desde = _pivote.rotation.y
+	_angulo_hasta = _angulo_de(_giro_continuo)
+	_t_giro = 0.0
+	_rotando = true
+	print("[mundo] rotación -> %d (giro continuo %d)" % [rotacion, _giro_continuo])
+
+func _animar_giro(delta: float) -> void:
+	if not _rotando:
+		return
+	_t_giro += delta / DURACION_GIRO
+	var t := clampf(_t_giro, 0.0, 1.0)
+	var s := 1.0 - pow(1.0 - t, 3.0)
+	_pivote.rotation.y = lerpf(_angulo_desde, _angulo_hasta, s)
+	if t >= 1.0:
+		_rotando = false
+		# Se fija el ángulo exacto: si quedara una fracción de grado, las
+		# losas dejarían de verse alineadas aunque la matemática dijera
+		# que lo están.
+		_pivote.rotation.y = _angulo_hasta
+
+# ------------------------------------------------------------------ pasos
+
+func _intentar_paso(direccion: String) -> void:
+	if _personaje.animando:
+		# Cola de un solo paso, el más reciente gana: un empujón que llega
+		# durante la animación no se descarta en silencio.
+		_cola_direccion = direccion
+		return
+
+	var paso := _nav.intentar_paso(_personaje.celda, direccion, rotacion)
+	if not paso["permitido"]:
+		return
+
+	var destino: Vector3i = paso["celda"]
+	var es_puente: bool = paso["puente"]
+	if es_puente:
+		print("[mundo] ¡PUENTE IMPOSIBLE! %s -> %s (salto real de %d celdas)" % [
+			_personaje.celda, destino, paso["distancia"],
+		])
+	_personaje.ir_a(destino, es_puente)
+
+func _al_terminar_paso() -> void:
+	if not _descubierto and _personaje.celda == OBJETIVO:
+		_descubrir()
+
+	if _cola_direccion != "":
+		var direccion := _cola_direccion
+		_cola_direccion = ""
+		_intentar_paso(direccion)
+
+func _descubrir() -> void:
+	_descubierto = true
+	print("[mundo] ***** HALLAZGO: llegaste al mirador *****")
+	# La revelación de verdad (la cámara que se suelta, la portada, la
+	# canción) es una etapa posterior. Por ahora la baliza se apaga, para
+	# que llegar tenga alguna consecuencia visible.
+	_baliza.visible = false
+
+# ---------------------------------------------------------------- entrada
+
+func _unhandled_input(evento: InputEvent) -> void:
+	# Rotación. Se lee acá y no con acciones de InputMap para no tener que
+	# escribir a mano el mapeo en project.godot, que es fácil de romper.
+	if evento is InputEventKey:
+		var tecla := evento as InputEventKey
+		if tecla.pressed and not tecla.echo:
+			if tecla.keycode == KEY_A:
+				_rotar(-1)
+			elif tecla.keycode == KEY_D:
+				_rotar(1)
+	elif evento is InputEventJoypadButton:
+		var boton := evento as InputEventJoypadButton
+		if boton.pressed:
+			if boton.button_index == JOY_BUTTON_LEFT_SHOULDER:
+				_rotar(-1)
+			elif boton.button_index == JOY_BUTTON_RIGHT_SHOULDER:
+				_rotar(1)
 
 func _process(delta: float) -> void:
-	# is_action_just_pressed da UN disparo por empujón, tanto de tecla como
-	# de stick: el stick tiene que volver a la zona muerta antes de poder
-	# empujar de nuevo. Es literal lo que pide DISENO_GODOT.md §3.
-	for accion in DIRECCIONES:
-		if Input.is_action_just_pressed(accion):
-			_personaje.empujar(DIRECCIONES[accion] as Vector2i)
+	_tiempo += delta
+	_animar_giro(delta)
 
-	_seguir_con_la_camara(delta)
+	# Mientras el mundo gira no se camina: si se pudiera, el jugador se
+	# movería usando una alineación que todavía no terminó de formarse.
+	if not _rotando:
+		for accion in DIRECCIONES:
+			if Input.is_action_just_pressed(accion):
+				_intentar_paso(DIRECCIONES[accion] as String)
 
-## Solo traslación, nunca rotación. El suavizado usa exp() para que sea
-## independiente de los cuadros por segundo: con un lerp por delta pelado,
-## la cámara se sentiría distinta a 60 y a 144 Hz.
-func _seguir_con_la_camara(delta: float) -> void:
-	var destino := _objetivo_camara() + _offset_camara
-	var factor := 1.0 - exp(-VELOCIDAD_CAMARA * delta)
-	_camara.position = _camara.position.lerp(destino, factor)
+	if _baliza != null and not _descubierto:
+		_baliza.position.y = Personaje.posicion_local(OBJETIVO, CENTRO).y + 1.0 + sin(_tiempo * 2.0) * 0.15

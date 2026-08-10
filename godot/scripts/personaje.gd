@@ -5,7 +5,7 @@ extends Node3D
 ## LA REGLA MÁS IMPORTANTE DE TODO EL PROYECTO (ver DISENO_GODOT.md §3):
 ## esto NO es un CharacterBody3D, NO usa move_and_slide(), NO tiene
 ## velocidad continua ni gravedad simulada. El estado lógico del personaje
-## es una celda entera (Vector2i), nunca una posición flotante.
+## es una celda entera (Vector3i), nunca una posición flotante.
 ##
 ## Por qué es obligatorio y no una preferencia de estilo: la regla del
 ## juego ("puedes pisar lo que se ve pegado a ti") compara posiciones en
@@ -15,69 +15,84 @@ extends Node3D
 ## Lo que SÍ es continuo es la animación: el paso se ve suave, con su arco
 ## y su tiempo. Lo discreto es el estado, no el dibujo.
 
-const TAM := 1.0
-
-## Sensación del paso. Estos números son lo que RR tiene que juzgar en la
-## etapa 1 — están acá arriba para que sean fáciles de tocar.
+## Tamaño de celda en x/z, y altura de un escalón.
 ##
-## OJO (DISENO_GODOT.md §6): el peso del paso va en la TEXTURA (arco,
-## aterrizaje, sonido, vibración), NO en hacerlo lento. Un paso lento
-## vuelve tedioso probar rotaciones, que es el core del juego.
-const DURACION_PASO := 0.16 # segundos
+## ⚠️ TIENEN QUE SER IGUALES. La matemática de proyeccion.gd asume que subir
+## un escalón desplaza en pantalla exactamente lo mismo que avanzar una
+## celda en x o z (por eso B = x + z - 2y con un 2 y no otro número).
+## Separarlos rompe TODAS las alineaciones sin que nada avise (INFORME §6).
+const TAM := 1.0
+const ALTO := 1.0
+
+## Sensación del paso normal.
+##
+## OJO (DISENO_GODOT.md §6): el peso va en la TEXTURA del paso (arco,
+## aterrizaje, sonido), NO en hacerlo lento. Un paso lento vuelve tedioso
+## probar rotaciones, que es el core del juego.
+const DURACION_PASO := 0.16
 const ALTURA_ARCO := 0.12
 
-var celda := Vector2i.ZERO
+## El paso del PUENTE IMPOSIBLE dura más y sube mucho más alto.
+##
+## Es la única pista que da el sistema de que acaba de pasar algo que no era
+## obvio. Sin ella, cruzar un abismo de 22 celdas se siente igual que
+## caminar al lado, y el hallazgo pierde todo su peso.
+const DURACION_PUENTE := 0.42
+const ALTURA_ARCO_PUENTE := 2.2
 
-var _puede_pisar: Callable
-var _animando := false
+signal paso_terminado
+
+var celda := Vector3i.ZERO
+var animando := false
+
+var _centro := Vector2i.ZERO
 var _t := 0.0
+var _duracion := DURACION_PASO
+var _arco := ALTURA_ARCO
 var _desde := Vector3.ZERO
 var _hasta := Vector3.ZERO
 
-## Cola de UN solo paso, el más reciente gana. Sin esto, un empujón que
-## llega mientras el paso anterior todavía anima se descarta en silencio —
-## y eso es exactamente lo que hacía sentir los controles como rotos al
-## pulsarlos rápido (lección ya pagada en src/render/personaje.js).
-var _hay_cola := false
-var _cola := Vector2i.ZERO
+## Posición dentro del pivote que rota. Es la posición SIN rotar: el giro
+## del mundo lo aplica el nodo padre, no esta cuenta.
+static func posicion_local(c: Vector3i, centro: Vector2i) -> Vector3:
+	return Vector3(
+		(c.x - centro.x) * TAM,
+		c.y * ALTO,
+		(c.z - centro.y) * TAM
+	)
 
-static func posicion_de_celda(c: Vector2i) -> Vector3:
-	return Vector3(c.x * TAM, 0.0, c.y * TAM)
-
-func configurar(celda_inicial: Vector2i, puede_pisar: Callable) -> void:
+func configurar(celda_inicial: Vector3i, centro: Vector2i) -> void:
+	_centro = centro
 	celda = celda_inicial
-	_puede_pisar = puede_pisar
-	position = posicion_de_celda(celda)
+	position = posicion_local(celda, _centro)
 
-## Un empujón en una dirección. `delta` es un paso de celda: (±1,0) o (0,±1).
-func empujar(delta: Vector2i) -> void:
-	if _animando:
-		_hay_cola = true
-		_cola = delta
+## Mover a una celda concreta. Quién decide si el paso es legal es
+## navegacion.gd — acá solo se anima.
+func ir_a(destino: Vector3i, es_puente: bool) -> void:
+	if animando:
 		return
 
-	var destino := celda + delta
-	if not _puede_pisar.call(destino):
-		return
-
-	_desde = posicion_de_celda(celda)
-	_hasta = posicion_de_celda(destino)
+	_desde = posicion_local(celda, _centro)
+	_hasta = posicion_local(destino, _centro)
 	celda = destino
+
+	_duracion = DURACION_PUENTE if es_puente else DURACION_PASO
+	_arco = ALTURA_ARCO_PUENTE if es_puente else ALTURA_ARCO
 	_t = 0.0
-	_animando = true
+	animando = true
 
 func _process(delta: float) -> void:
-	if not _animando:
+	if not animando:
 		return
 
-	_t += delta / DURACION_PASO
+	_t += delta / _duracion
 	var t := clampf(_t, 0.0, 1.0)
 	# Ease-out cúbico: sale rápido y aterriza suave. El aterrizaje es la
 	# parte que se siente como "peso".
 	var s := 1.0 - pow(1.0 - t, 3.0)
 
 	position = _desde.lerp(_hasta, s)
-	position.y += sin(s * PI) * ALTURA_ARCO
+	position.y += sin(s * PI) * _arco
 
 	if t < 1.0:
 		return
@@ -85,10 +100,6 @@ func _process(delta: float) -> void:
 	# Fin del paso: se fija la posición exacta para que no quede deriva
 	# acumulada por coma flotante — el estado lógico es la celda, y la
 	# posición dibujada tiene que volver a coincidir con ella exactamente.
-	_animando = false
+	animando = false
 	position = _hasta
-
-	if _hay_cola:
-		_hay_cola = false
-		var siguiente := _cola
-		empujar(siguiente)
+	paso_terminado.emit()
