@@ -15,7 +15,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="Enterrario (prototipo Godot)"
-config/description="Prototipo por etapas del diorama de Burdeo. Etapa 1: caminar por celdas. Leer DISENO_GODOT.md antes de tocar nada."
+config/description="Prototipo del diorama de Burdeo. Dos registros: habitar en 3a persona (movimiento continuo) y el acertijo isometrico (celdas discretas), con un dolly zoom entre ambos. Leer PREPRODUCCION.md antes de tocar nada."
 run/main_scene="res://escenas/Mundo.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 

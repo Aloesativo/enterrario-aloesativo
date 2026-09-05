@@ -19,7 +19,7 @@ Mover una isla **una sola celda** basta para caer en cualquiera de las dos.
 
 ## `verificar_nivel.py`
 
-Comprueba el nivel que está en uso hoy en `scripts/mundo.gd`.
+Comprueba el nivel que está en uso hoy en `scripts/acertijo.gd`.
 
 ```bash
 python3 verificar_nivel.py
@@ -30,7 +30,7 @@ rotación: si se alcanza el objetivo, cuántas celdas son alcanzables y qué
 puentes imposibles existen con su salto real.
 
 **Si tocás `AREAS`, `CENTRO`, `PARTIDA`, `OBJETIVO` o `ROTACION_INICIAL` en
-`mundo.gd`, actualizá los mismos valores acá abajo del `__main__` y corré
+`acertijo.gd`, actualizá los mismos valores acá abajo del `__main__` y corré
 esto antes de abrir Godot.**
 
 > El mismo chequeo corre dentro del juego en cada arranque
