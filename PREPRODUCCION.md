@@ -148,6 +148,19 @@ alejar la cámara mientras se baja el FOV. A FOV muy bajo la perspectiva es
 > imperceptible. No hace falta interpolar entre dos proyecciones (Godot no
 > lo permite) — hace falta llegar al punto donde da lo mismo.
 
+**Lo que la construcción agregó a este diseño (2026-08-10, al implementarlo).**
+El plan era apagar el mundo habitado al final de la toma, asumiendo que para
+entonces habría quedado fuera de cuadro. Se comprobó con números y **es falso**:
+con la cámara isométrica a 35.264° la isla habitable cae DENTRO del encuadre de
+los tres santuarios, y elevarlos no lo arregla (empuja fuera los puntos de abajo
+pero mete los de arriba). Así que la toma termina en un **fundido cruzado**: el
+mundo habitado se disuelve mientras el personaje aparece dentro del santuario.
+
+No es solo un parche: el cruce dice algo que el corte no decía — tu cuerpo se
+disuelve en el mundo y reaparece dentro del acertijo. Y a diferencia del apagón,
+no depende del encuadre, así que es correcto por construcción y no por suerte
+geométrica.
+
 ### Las cuatro reglas de la frontera
 
 1. **Al entrar, el personaje se acopla a la grilla.** La posición continua
@@ -162,7 +175,7 @@ alejar la cámara mientras se baja el FOV. A FOV muy bajo la perspectiva es
    Vuelve a posición continua sin salto visible.
 
 3. **El estado del acertijo se recuerda, la orientación también.** Cada
-   zona ya guarda su propia rotación (`mundo.gd`). Volvés a entrar y está
+   zona ya guarda su propia rotación (`acertijo.gd`). Volvés a entrar y está
    como lo dejaste. Un acertijo resuelto queda resuelto para siempre —
    es la misma promesa que "el mundo recuerda lo que hiciste" (§6 de
    `DISENO_GODOT.md`).

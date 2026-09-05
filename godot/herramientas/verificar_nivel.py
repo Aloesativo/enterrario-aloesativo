@@ -148,11 +148,11 @@ def evaluar(nombre, areas, centro, partida, objetivo, rot_inicial):
 
 
 if __name__ == "__main__":
-    # El nivel que está EN USO hoy en godot/scripts/mundo.gd (AREAS,
+    # El nivel que está EN USO hoy en godot/scripts/acertijo.gd (AREAS,
     # CENTRO, PARTIDA, OBJETIVO, ROTACION_INICIAL). Si tocas esos numeros
     # alla, cambialos aca y corre este script antes de abrir Godot.
     ok = evaluar(
-        "nivel en uso (mundo.gd): orilla 6x6 y=0 + mirador 6x6 y=7",
+        "nivel en uso (acertijo.gd): orilla 6x6 y=0 + mirador 6x6 y=7",
         [rect(0, 5, 0, 5, 0), rect(9, 14, 9, 14, 7)],
         centro=(7, 7),
         partida=(0, 0, 0),

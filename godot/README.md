@@ -5,128 +5,141 @@
 > documentos, no se escribe: se propone, se acuerda, se anota, y recién
 > después se construye.
 
-> ⚠️ **Lo que hay en esta carpeta es UN registro del juego, no el juego
-> (2026-08-10).** RR decidió que el juego tiene **dos registros**: habitar
-> el mundo en tercera persona con movimiento continuo (todavía **no
-> existe**), y el acertijo isométrico con celdas discretas (**es todo lo
-> que está descrito acá abajo**). Se entra al acertijo cruzando un umbral
-> visible, y la cámara hace un dolly zoom que aplana el mundo en una sola
-> toma. Ver `../PREPRODUCCION.md` §1 y §2.
->
-> Consecuencia práctica para quien lea esto: **la cámara ortográfica rígida,
-> las celdas discretas y la ausencia de órbita libre son correctas acá y
-> solo acá.** No son el estilo del juego entero — son las reglas de este
-> registro, y en el otro son incorrectas.
+## Estado: los DOS registros, con la frontera entre ellos
 
-## Estado: el diorama de Burdeo, en zonas modulares
+RR probó el prototipo y dijo que el personaje tiene que verse **en tercera
+persona**, habitando un entorno 3D común y corriente, y que la isometría pase
+a funcionar **de manera cinematográfica**. Eso es lo que hay ahora:
 
-**Tres zonas del lore**, cada una un espacio en sí mismo con su propio
-acertijo, su propio centro de giro y su propia rotación recordada:
-
-| Zona | Qué es | Acertijo |
+| | **Registro HABITAR** | **Registro ACERTIJO** |
 |---|---|---|
-| **ciudad** | Burdeo: las calles y las dos torres (Burdeo BB) | sí — el mirador de las torres |
-| **playa** | "conectada a Burdeo dentro del mismo mapa" | no, a propósito: un lugar donde estar |
-| **luna** | "el satélite de la ciudad" | sí, más chico y más alto |
+| Qué es | una isla habitable en tercera persona | el estereograma: el truco isométrico |
+| Cámara | perspectiva, sigue al personaje, la movés vos | ortográfica isométrica verdadera, **rígida** |
+| Movimiento | continuo, con peso | celdas discretas, un paso por empujón |
+| Script | `habitar.gd` + `caminante.gd` | `acertijo.gd` + `personaje.gd` |
 
-Se viaja pisando las **esferas celestes** (portales). Arriba de las torres
-de la ciudad —a donde solo se llega resolviendo el acertijo— está el portal
-a la luna: el premio de resolverlo. A ras de suelo hay otro a la playa.
+Y entre los dos, `frontera.gd`.
 
-### La ilusión: son espacios distintos
+### Lo que hay que mirar primero: la toma
 
-Los espacios **no comparten coordenadas**. Cada uno es independiente y la
-sensación de que forman un mismo diorama la da el **viaje de la cámara**.
+Los tres santuarios **flotan sobre la isla**, visibles desde abajo como
+monumentos, cada uno con su arco al pie. Cruzás el arco caminando y:
 
-Se probó primero la otra forma —todas las zonas superpuestas en un mismo
-sistema de coordenadas— y falló por dos motivos medidos: hacía falta una
-cámara de 36 unidades (todo diminuto), y cada zona tenía que abrirse en una
-rotación distinta *a la vez*, así que **mover una rompía otra**.
+> **la cámara vuela hacia el santuario mientras cierra el FOV, y el mundo se
+> aplana ante tus ojos en una sola toma continua.**
 
-Con zonas modulares, **cada una se valida sola**. Agregar una zona no puede
-romper las demás. Eso es lo que hace que esto escale.
+No es un corte ni una pantalla de carga: es un dolly zoom. Una perspectiva de
+FOV muy chico es visualmente indistinguible de una ortográfica, así que al
+final de la toma el cambio de proyección ocurre en un frame donde no se ve. El
+FOV exacto sale de igualar lo que abarcan las dos proyecciones a la distancia
+del objetivo — la derivación está arriba de `frontera.gd`.
 
-> **Simplificación conocida:** al entrar a una zona siempre aparecés en su
-> celda de partida, no al lado del portal por el que llegaste. Se nota al
-> volver a la ciudad desde la playa. Falta que cada portal declare su celda
-> de llegada.
+Eso es "la isometría funcionando de manera cinematográfica": la isometría es
+un **plano de cámara** y sigue siendo la **mecánica**, sin sacrificar ninguna
+de las dos.
 
-## El mecanismo dentro de cada zona
+## Cómo jugarlo
+
+1. Abrir `godot/project.godot` con Godot 4.x (NO la raíz del repo).
+2. F5 / Play. Arrancás en el registro **habitar**, en el centro de la isla.
+
+| | Teclado / mouse | Control |
+|---|---|---|
+| **Caminar** (habitar) | Flechas | Stick izquierdo / D-pad |
+| **Mirar** (habitar) | `Q` y `E`, o arrastrar con el botón **derecho** | Stick derecho |
+| **Entrar a un santuario** | caminar y cruzar el arco | ídem |
+| **Dar un paso** (acertijo) | Flechas | Stick izquierdo / D-pad |
+| **Rotar el mundo** (acertijo) | `A` y `D` | `LB` y `RB` |
+| **Volver al mundo habitado** | pisar la esfera **verde**, o `Escape` | botón `B` |
+
+Cero controles en pantalla y todo pre-mapeado de fábrica: conectás el control
+y anda, sin pantalla de configuración (requisito duro de RR).
+
+> **Dos formas de salir del acertijo, a propósito.** La esfera verde es la
+> salida diegética; `Escape`/`B` es la de emergencia. Quedar encerrado dentro
+> de una zona **ya pasó una vez** en este proyecto (CLAUDE.md, "Bug del
+> mapa-zoom sin vuelta atrás") y no se repite por ahorrar un `if`.
+
+## Qué mirar, y en este orden
+
+Son dos preguntas distintas y conviene no mezclarlas — si la primera falla, la
+segunda no se puede juzgar:
+
+**1. El registro habitar (etapa A).** Antes de cruzar ningún arco, caminá un
+rato por la isla.
+- **¿Se siente que habitás un lugar, o que movés una ficha?** Es LA pregunta.
+- ¿El personaje tiene escala creíble contra las torres, los muros bajos y los
+  arcos? (los arcos miden 2.4 contra 1.0 del personaje, a propósito)
+- ¿La cámara acompaña bien, o marea / va por detrás?
+- Números para tocar, arriba de `habitar.gd`: `DISTANCIA_CAMARA` (lo primero
+  que hay que mover si no se siente tercera persona), `ALTURA_FOCO`,
+  `PITCH_REPOSO`, `SUAVIZADO_FOCO`. Y en `caminante.gd`: `VELOCIDAD`,
+  `ACELERACION`, `FRENADA`.
+
+**2. La frontera (etapa C).** Recién después, cruzá un arco.
+- **¿El aplanado se siente como un plano de cine?**
+- ¿Entrar y salir se entiende sin que nadie lo explique?
+- ¿El **fundido cruzado** se lee? Cerca del final de la toma la isla se
+  disuelve mientras el personaje aparece dentro del santuario. Si se siente
+  apurado, bajar `INICIO_FUNDIDO` en `frontera.gd` (0.55 → 0.40); si tapa
+  demasiado pronto el vuelo, subirlo (0.70).
+- Duración: `DURACION_ENTRADA` (1.6) y `DURACION_SALIDA` (1.2).
+
+> **Por qué un fundido y no un apagón.** La primera versión apagaba el mundo
+> habitado de golpe al final de la toma, dando por hecho que a esa altura ya
+> había quedado fuera de cuadro. Se comprobó con números y **era falso**: con
+> la cámara isométrica a 35.264° la isla de 40×40 cae DENTRO del encuadre de
+> los tres santuarios, y elevar las zonas no lo arregla (empuja fuera los
+> puntos de abajo pero mete los de arriba — playa tendría que estar a y=50).
+> El fundido no depende del encuadre, así que es correcto por construcción y
+> no por suerte geométrica.
+
+**3. El acertijo (ya probado).** Debería andar igual que antes — si cambió
+algo, es una regresión y vale reportarla como tal.
+
+## El mecanismo dentro de cada santuario
 
 **Lo que convierte esto en un juego es que haya un lugar imposible de
 alcanzar que, al rotar, se vuelve alcanzable.**
 
-### Cómo jugarlo
-
-1. Abrir `godot/project.godot` con Godot 4.x (NO la raíz del repo).
-2. F5 / Play.
-
-| | Teclado | Control |
-|---|---|---|
-| **Caminar** | Flechas | Stick izquierdo / D-pad |
-| **Rotar el mundo** | `A` y `D` | `LB` y `RB` |
-
-**Mantener apretado camina.** El personaje encadena pasos sin frenar entre
-celda y celda, bambolea al andar y encara la dirección a la que va. Su
-estado sigue siendo una celda discreta — lo que cambió es solo cómo se
-dibuja. Números para tocar, arriba de `scripts/personaje.gd`:
-`DURACION_PASO`, `AMPLITUD_BAMBOLEO`, `INCLINACION`, `VELOCIDAD_GIRO`.
-
-### El acertijo
-
 En la ciudad hay **dos islas**: las calles (donde arrancás, abajo) y las
-torres (arriba, a 7 de altura), con una **esfera dorada** encima que marca
-el mirador.
+torres (arriba, a 7 de altura), con una **esfera dorada** encima que marca el
+mirador. Están separadas por un abismo real de **22 celdas**. No hay puente,
+no hay rampa, no hay escalera. Desde la rotación en la que arrancás, el
+mirador es sencillamente **inalcanzable**.
 
-Están separadas por un abismo real de **22 celdas**. No hay puente, no hay
-rampa, no hay escalera. Desde la rotación en la que arrancás, el mirador es
-sencillamente **inalcanzable**.
-
-**Rotá el mundo** y mirá qué pasa con las dos islas en pantalla. En una de
-las cuatro rotaciones —y solo en una— se ven *pegadas*. Y si se ven
-pegadas, se pueden pisar.
+**Rotá el mundo** y mirá qué pasa con las dos islas en pantalla. En una de las
+cuatro rotaciones —y solo en una— se ven *pegadas*. Y si se ven pegadas, se
+pueden pisar.
 
 > Esa es la regla entera del juego, sin excepciones:
 > **puedes pisar lo que se ve pegado a ti.**
 > No lo que está al lado en el mundo — lo que está al lado en la PANTALLA.
 
+Se viaja entre santuarios pisando las **esferas celestes**. Arriba de las
+torres —a donde solo se llega resolviendo el acertijo— está el portal a la
+luna: el premio de resolverlo.
+
 ### Si no se te ve, no podés romper la ilusión
 
 Al rotar, el personaje puede quedar **tapado** por la otra isla. Desde ahí
-**no se puede cruzar un puente** — pero sí se puede seguir caminando, y
-sobre todo volver por donde viniste.
+**no se puede cruzar un puente** — pero sí se puede seguir caminando, y sobre
+todo volver por donde viniste.
 
 Quedar tapado es inevitable y está bien. Lo que no puede pasar es *saltar*
 estando tapado: el salto se vería salir de la nada y aterrizar solo, que es
-teletransporte y no descubrimiento — el jugador ni siquiera puede ver desde
-dónde saltó. No es una excepción a la regla: es su otra mitad.
+teletransporte y no descubrimiento. No es una excepción a la regla: es su otra
+mitad.
 
-> Antes esto bloqueaba **todo** el movimiento y era un softlock. Se corrigió:
-> el movimiento tiene que sentirse libre; lo único que se impide es romper
-> la ilusión. Si intentás cruzar estando tapado, la consola avisa.
-
-Cuando cruces, el paso se siente distinto a propósito: dura más y el
-personaje describe un arco alto. Es la única pista que da el sistema de que
-acabás de hacer algo que no era obvio. Por la terminal sale
-`¡PUENTE IMPOSIBLE!` con el salto real en celdas.
-
-### Qué mirar
-
-- **¿Se entiende el truco?** ¿Se ve que en una rotación las islas se juntan?
-- **¿El cruce se siente distinto a caminar?** Debería sentirse raro, casi
-  ilegal.
-- **¿La rotación se lee?** Tiene que dar tiempo a ver *qué* cambió sin
-  aburrir. Ajustable: `DURACION_GIRO` (hoy `0.38`).
-- **¿Se ven las dos islas siempre?** Es requisito: el acertijo se resuelve
-  comparándolas. Si alguna se sale de cuadro, subir `tamano_camara` de esa
-  zona.
-- **¿El viaje entre zonas se siente como un salto?** RR lo pidió como
-  "saltos de cámara". Ajustable: `DURACION_VIAJE` (hoy `0.55`).
+Cuando cruces, el paso se siente distinto a propósito: dura más y el personaje
+describe un arco alto. Es la única pista que da el sistema de que acabás de
+hacer algo que no era obvio. Por la terminal sale `¡PUENTE IMPOSIBLE!` con el
+salto real en celdas.
 
 ## El nivel está verificado matemáticamente
 
-No pude correr Godot, **pero sí pude correr la matemática**. El nivel se
-buscó por barrido de parámetros con BFS, replicando `proyeccion.js` y
+No pude correr Godot, **pero sí pude correr la matemática**. El nivel se buscó
+por barrido de parámetros con BFS, replicando `proyeccion.js` y
 `navegacion.js`, y cumple:
 
 | Propiedad | Valor |
@@ -137,96 +150,120 @@ buscó por barrido de parámetros con BFS, replicando `proyeccion.js` y
 | Salto del puente | 22 celdas de mundo |
 | Celdas tapadas en rot. 0 | 16 (las islas se funden en pantalla) |
 
-La luna tiene su propio acertijo, verificado igual y por separado.
+La luna tiene su propio acertijo, verificado igual y por separado. Además,
+`Navegacion.validar()` **vuelve a comprobarlo en cada arranque** y avisa por
+consola.
 
-El dato que mejor muestra el efecto Magic Eye: el nivel entero ocupa
-**7.07 × 5.72** unidades de pantalla en la rotación 0 (todo superpuesto) y
-**17.15** de alto en la rotación 2 (todo desplegado). Es el mismo mundo.
+> ⚠️ **Qué se puede tocar y qué no** (`_definir_zonas()` en `acertijo.gd`) — la
+> distinción importa y no era obvia:
+>
+> - **`origen` es SEGURO de mover.** Solo coloca la zona en el espacio del
+>   mundo. La matemática trabaja en coordenadas de **celda** relativas a
+>   `centro`, así que trasladar una zona no cambia ninguna alineación. (Es lo
+>   que se hizo para elevar los santuarios sobre la isla: comprobado corriendo
+>   `herramientas/verificar_nivel.py` después del cambio.)
+> - **`areas`, `centro`, `partida`, `acertijo` y `rotacion_inicial` NO se
+>   tocan a ojo.** Mover una isla UNA celda puede dejar el acertijo sin
+>   solución o quitarle la gracia, **en silencio**.
 
-Además, `Navegacion.validar()` **vuelve a comprobarlo en cada arranque** y
-avisa por consola. Un nivel se rompe de **tres** formas, y las tres son
-mudas si nadie las comprueba:
+## Las trampas que este código evita a propósito
 
-1. El objetivo queda **inalcanzable** en las cuatro rotaciones.
-2. El objetivo se alcanza **ya en la rotación inicial** → no es acertijo.
-3. *(aviso, ya no falla)* Una celda que no se ve en **ninguna** rotación.
-   Dejó de ser un softlock cuando el bloqueo pasó a impedir solo el salto,
-   pero sigue siendo un olor de diseño: el jugador puede pararse donde no
-   se lo ve nunca.
+**1. Los dos contadores de rotación.** El giro guardado por zona nunca da la
+vuelta (…, -1, 0, 1, 2, 3, 4, …) y sirve para animar; `_rotacion()` es ese
+valor módulo 4 y es el que usa la matemática. Con un solo contador, pasar de
+la rotación 3 a la 0 hacía girar el mundo **270° hacia atrás**. Costó caro:
+815% de desviación medida en pantalla (`INFORME.md` §6).
 
-> El BFS **no puede detectar la tercera**: explora dentro de una rotación
-> fija, nunca rota, así que jamás se topa con el caso "quedé tapado al
-> rotar". Tiene su propia comprobación aparte.
+**2. Rotaciones con enteros, sin senos ni cosenos.** La comparación entre dos
+posiciones de pantalla es de **igualdad exacta**. Con trigonometría, el error
+de coma flotante haría que el puente apareciera y desapareciera de forma
+intermitente — el peor tipo de bug, el que parece un fantasma.
 
-> ⚠️ **Los números de cada zona no se tocan a ojo** (`_definir_zonas()` en
-> `mundo.gd`). Mover una isla UNA celda puede romper el acertijo en
-> cualquiera de las dos direcciones. Si los cambiás, mirá lo que dice
-> `[nivel]` en la consola, o corré `herramientas/verificar_nivel.py`.
+**3. El giro se sigue animando aunque el registro esté apagado.** Si no,
+apagar el acertijo a mitad de una rotación dejaría el pivote en un ángulo que
+no es múltiplo de 90°, y ahí **todas** las alineaciones quedan mal sin que
+nada avise.
 
-## Las dos trampas que este código evita a propósito
+**4. El fundido va en tramos distintos según el sentido.** Entrando se vuela de
+cerca a lejos, así que el fundido va **al final**; saliendo se vuela de lejos a
+cerca, así que va **al principio**. En los dos casos ocurre con la cámara
+lejos, que es donde se lee como una disolución. Usar el mismo tramo para los
+dos hace que al volver el mundo se materialice en la cara del jugador.
 
-**1. Los dos contadores de rotación.** El giro guardado por zona nunca da
-la vuelta (…, -1, 0, 1, 2, 3, 4, …) y sirve para animar; `_rotacion()` es
-ese valor módulo 4 y es el que usa la matemática. Con un solo contador,
-pasar de la rotación 3 a la 0 hacía girar el mundo **270° hacia atrás** en
-vez de 90° adelante. Costó caro: 815% de desviación medida en pantalla, y
-se sospechó de la proyección, que estaba bien (`INFORME.md` §6).
+**5. Sin niebla, y a propósito.** La cámara pasa de ~6.5 a ~69 unidades de
+distancia durante la toma, así que cualquier distancia de niebla fija estaría
+mal en alguno de los dos extremos. Es la misma trampa que ya costó cara en el
+track de Three.js (CLAUDE.md, "Lección del bug de niebla").
 
-**2. Rotaciones con enteros, sin senos ni cosenos.** La comparación entre
-dos posiciones de pantalla es de **igualdad exacta**. Con trigonometría, el
-error de coma flotante haría que el puente apareciera y desapareciera de
-forma intermitente — el peor tipo de bug, el que parece un fantasma.
+## La regla que no se rompe — y cómo cambió de alcance
 
-Y una tercera, corregida al portar: `navegacion.js` decidía qué celda se ve
-(cuando dos caen en el mismo píxel) comparando `x + z` **sin rotar**, lo
-cual solo vale en la rotación 0. Acá se compara la **altura**, que es
-equivalente y correcto en las cuatro — la demostración está en el comentario
-de `navegacion.gd`.
+`personaje.gd` (registro acertijo) **no** es un `CharacterBody3D`, **no** usa
+`move_and_slide()`, **no** tiene gravedad ni velocidad continua. Su estado es
+una celda entera (`Vector3i`).
 
-## La regla que no se rompe
+`caminante.gd` (registro habitar) **sí** es todo eso — y ahí es lo correcto.
 
-`personaje.gd` **no** es un `CharacterBody3D`, **no** usa `move_and_slide()`,
-**no** tiene gravedad ni velocidad continua. El estado del personaje es una
-celda entera (`Vector3i`).
+No es una contradicción: la prohibición **se localizó, no se relajó**. Existe
+porque la regla del acertijo compara posiciones en pantalla buscando igualdad
+**exacta**, y esa comparación solo vive dentro del acertijo. En el registro
+habitar no hay ninguna igualdad exacta que romper.
 
-No es preferencia de estilo: la regla del juego compara posiciones en
-pantalla buscando igualdad **exacta**, y con posiciones continuas esa
-igualdad no ocurre nunca. Ver `DISENO_GODOT.md` §3 — es la causa raíz del
-prototipo que hubo que tirar.
-
-Lo continuo es la **animación**. Lo discreto es el estado.
+> ⚠️ **El modo de fallar nuevo:** filtrar un registro dentro del otro. Si
+> algún día `move_and_slide()` aparece en `personaje.gd`, el juego se rompe
+> igual que se rompió antes. Por eso son dos scripts que no se importan entre
+> sí y no comparten estado: lo único que comparten es el cuerpo que dibujan
+> (`cuerpo.gd`), para que se lea como **un solo ser** en los dos registros.
 
 ## Qué NO está, a propósito
 
-- **La revelación** (la cámara que se suelta, la portada, la canción). Por
-  ahora llegar al mirador solo apaga la baliza e imprime un mensaje.
-- El zoom-cuerda y el dashboard (etapa 6), el tilt-shift (etapa 7).
-- Las zonas del lore, el cometa, las épocas, el arte, el sonido.
-- Identidad visual: todo gris neutro. El contraste entre celdas vecinas
-  **sí** es funcional (sin él no se pueden contar celdas, y contar celdas
-  es como se lee la alineación), no decorativo.
+- **El registro habitar no tiene mecánica propia todavía** — caminar y mirar
+  es traslado, no mecánica. Es el **riesgo #1** de esta estructura
+  (`PREPRODUCCION.md` §3): si no se llena, el juego queda como un pasillo
+  entre cuartos de acertijo. Lo que va ahí es el material de `DISENO_GODOT.md`
+  §6: el peso del paso, plantar, el mundo que recuerda.
+- **La revelación** al resolver (la portada, la canción) — etapa D. Hoy llegar
+  al mirador solo apaga la baliza e imprime un mensaje.
+- El zoom-cuerda y el dashboard en miniatura (etapa E).
+- **El borde del mundo** sigue sin decidir (`PREPRODUCCION.md` §8). Mientras
+  tanto hay muros invisibles en el perímetro de la isla: caerse al vacío sin
+  fondo sería un softlock, y eso es peor que un límite provisional.
+- **La cámara de habitar no esquiva obstáculos.** Si se mete dentro de una
+  torre, es esto: se dejó fuera a propósito para no depender de un
+  `SpringArm3D` que el agente no puede probar. Si molesta, se agrega.
+- Las zonas del lore que faltan, el cometa, las épocas, el arte, el sonido.
+- Identidad visual: todo gris neutro. El contraste entre celdas vecinas **sí**
+  es funcional (sin él no se pueden contar celdas, y contar celdas es como se
+  lee la alineación), no decorativo.
+- **El guardado** no existe: cada arranque empieza de cero.
 
 ## Si algo falla
 
-El agente **no puede correr Godot** (`DISENO_GODOT.md` §11) — esto se
-escribió leyendo, sin ejecutar. Si tira un error:
+El agente **no puede correr Godot** (`DISENO_GODOT.md` §11) — esto se escribió
+leyendo, sin ejecutar. Si tira un error:
 
 **copiar el mensaje de la terminal tal cual, sin resumirlo.**
 
-Al arrancar imprime el estado del nivel, y cada rotación y cada puente
-salen por consola.
+Al arrancar imprime el estado de cada nivel, y cada cambio de registro,
+rotación y puente sale por consola con su prefijo (`[frontera]`, `[habitar]`,
+`[acertijo]`, `[nivel]`).
 
 ## Archivos
 
 ```
 project.godot            escena principal: escenas/Mundo.tscn
-escenas/Mundo.tscn       raíz + cámara + sol
+escenas/Mundo.tscn       raíz + cámara + sol + los dos registros
+
+scripts/frontera.gd      EL ÁRBITRO: qué registro manda + la toma que aplana
+scripts/habitar.gd         registro habitar: la isla, los arcos, la cámara 3ª persona
+scripts/caminante.gd       registro habitar: movimiento continuo (CharacterBody3D)
+scripts/acertijo.gd        registro acertijo: las zonas, los pivotes, el viaje de cámara
+scripts/personaje.gd       registro acertijo: pasos por celdas + animación del andar
+scripts/cuerpo.gd        el cuerpo visual, COMPARTIDO por los dos registros
+
 scripts/proyeccion.gd    LA MATEMÁTICA: la ambigüedad isométrica (A, B)
 scripts/navegacion.gd    LA REGLA: "puedes pisar lo que se ve pegado a ti"
-scripts/personaje.gd     movimiento por celdas discretas + animación del paso
-scripts/mundo.gd         las zonas, los pivotes que rotan, el viaje de cámara
 herramientas/            validar niveles sin abrir Godot (ver su README)
 ```
 
-`proyeccion.gd` y `navegacion.gd` son **datos puros**: no saben de mallas ni
-de nodos. Es la misma separación en capas que rige en `src/` (`CLAUDE.md`).
+`proyeccion.gd` y `navegacion.gd` son **datos puros**: no saben de mallas ni de
+nodos. Es la misma separación en capas que rige en `src/` (`CLAUDE.md`).
